@@ -397,9 +397,7 @@ export default function App() {
                   </header>
                   <p>{t.direction === 'buy' ? 'Thinks' : "Doesn't think"} {p.currency} will be {p.side} ${p.strike.toLocaleString()}<br />by {expiryLabel(p.expiry)}.</p>
                   <small>{Number(t.trade_amount)} contract{Number(t.trade_amount) === 1 ? '' : 's'} at ${Number(t.trade_price).toFixed(2)}</small>
-                  <button className="text" onClick={() => copy(t)} title="Copy trade this opinion" aria-label="Copy trade this opinion">
-                    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="5.5" y="5.5" width="9" height="9" /><path d="M10.5 5.5v-4h-9v9h4" /></svg>
-                  </button>
+                  <footer><button className="text" onClick={() => copy(t)}>Copy trade</button></footer>
                 </li>
               )
             })}
