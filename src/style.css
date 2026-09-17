@@ -42,6 +42,9 @@ dialog::backdrop { background: rgba(0,0,0,.5); }
 dialog p { margin: 0 0 12px; }
 dialog .order b { display: block; } dialog .order small { color: var(--muted); font-size: 13px; }
 dialog .order small.collateral { display: block; margin-top: 8px; color: var(--fg); }
+dialog .order small.collateral b { font-variant-numeric: tabular-nums; }
+dialog .order small.collateral input[type=range] { display: block; width: 100%; margin: 8px 0 6px; accent-color: var(--teal); }
+dialog .order small.collateral span { display: block; color: var(--muted); }
 dialog code { font-size: 14px; word-break: break-all; user-select: all; }
 dialog .ok { color: var(--yes); } dialog .err { color: var(--no); white-space: pre-wrap; }
 dialog button { font: inherit; font-size: 15px; padding: 6px 12px; border: 1px solid var(--line); background: transparent; color: inherit; cursor: pointer; }
@@ -72,6 +75,8 @@ dialog form.x button:hover:not(:disabled), dialog form.x button:focus-visible { 
 .payoff .line { fill: none; stroke: var(--fg); stroke-width: 2; stroke-linejoin: round; }
 .payoff .axis { stroke: var(--line); stroke-width: 1; }
 .payoff .spot { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.payoff .liq { stroke: var(--no); stroke-width: 1; stroke-dasharray: 2 3; }
+.payoff .liqlabel { fill: var(--no); }
 .payoff .cross { stroke: var(--teal); stroke-width: 1; }
 .payoff .dot { fill: var(--teal); stroke: var(--bg); stroke-width: 2; }
 .payoff .spotdot { fill: var(--fg); stroke: var(--bg); stroke-width: 2; }

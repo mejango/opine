@@ -5,7 +5,7 @@ import { usePrivy, useWallets, useLogin } from '@privy-io/react-auth'
 import { useWho } from './who'
 import { buildMenu, expiryLabel, instrumentFor, parseInstrument, pick, resolve, topOpinions, type Instrument, type Menu, type Sentence, type Ticker } from './sentence'
 import * as d from './derive'
-import { payoff, stats, type Leg } from './payoff'
+import { payoff, stats, liquidationPrice, type Leg } from './payoff'
 
 // Contract sizes the −/+ walk through; an in-between typed value snaps to the next rung.
 const SIZES = [0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100]
@@ -54,7 +54,7 @@ const money = (x: number) => (x === Infinity ? 'Uncapped' : `$${x.toLocaleString
 const kfmt = (x: number) => (x >= 1000 ? `$${(x / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })}k` : `$${x.toLocaleString('en-US', { maximumFractionDigits: 2 })}`)
 
 /** Payoff at expiry: headline figures plus a hoverable line over ±40 % of strike. */
-function Payoff({ leg, spot, currency }: { leg: Leg; spot?: number; currency: string }) {
+function Payoff({ leg, spot, currency, liq }: { leg: Leg; spot?: number; currency: string; liq?: number }) {
   const [hover, setHover] = useState<number>()
   const st = stats(leg)
   const W = 360, H = 180, L = 46, R = 8, T = 10, B = 22
@@ -88,6 +88,10 @@ function Payoff({ leg, spot, currency }: { leg: Leg; spot?: number; currency: st
           <line x1={x(spot)} x2={x(spot)} y1={T} y2={H - B} className="spot" />
           <text x={x(spot)} y={H - B - 4} className="tick" textAnchor={spot > leg.strike ? 'end' : 'start'} dx={spot > leg.strike ? -4 : 4}>{currency} now {money(spot)}</text>
         </>}
+        {liq != null && liq > lo && liq < hi && <>
+          <line x1={x(liq)} x2={x(liq)} y1={T} y2={H - B} className="liq" />
+          <text x={x(liq)} y={H - B - 16} className="tick liqlabel" textAnchor={liq > leg.strike ? 'end' : 'start'} dx={liq > leg.strike ? -4 : 4}>liquidated ~{kfmt(liq)}</text>
+        </>}
         <polyline points={pts} className="line" />
         {spot && spot > lo && spot < hi && hp == null && <>
           <circle cx={x(spot)} cy={y(payoff(leg, spot))} r={4} className="spotdot" />
@@ -106,6 +110,9 @@ function Payoff({ leg, spot, currency }: { leg: Leg; spot?: number; currency: st
     </div>
   )
 }
+
+const leg = (o: { sentence: Sentence; limit?: number; price: number; amount: number; direction: 'buy' | 'sell' }): Leg =>
+  ({ type: o.sentence.side === 'above' ? 'C' : 'P', strike: o.sentence.strike, premium: o.limit ?? o.price, n: o.amount, long: o.direction === 'buy' })
 
 export default function App() {
   const [menu, setMenu] = useState<Menu>()
@@ -139,7 +146,8 @@ export default function App() {
   const resume = useRef<() => void>() // what to do once Privy has produced a wallet
   const [order, setOrder] = useState<{ instrument: string; direction: 'buy' | 'sell'; price: number; amount: number; sentence: Sentence; stance: 'do' | 'dont'; limit?: number }>()
   const dialog = useRef<HTMLDialogElement>(null)
-  const [collateral, setCollateral] = useState<number>() // for sells: what Derive will lock
+  const [collateral, setCollateral] = useState<number>() // for sells: Derive's minimum for this position
+  const [buffer, setBuffer] = useState<number>() // for sells: USDC the user chooses to keep behind it
   const trader = useRef<DeriveClient>()
   const [feed, setFeed] = useState<d.Tape[]>([])
   const [tab, setTab] = useState<'latest' | 'mine'>('latest') // mobile only: the two columns become tabs
@@ -295,7 +303,8 @@ export default function App() {
     if (!confirmed) { // review first; wallet and login only once they say go
       lastOverride.current = override
       setCollateral(undefined)
-      if (o.direction === 'sell') d.collateralFor(o.instrument, o.amount).then(setCollateral).catch(() => {})
+      setBuffer(undefined)
+      if (o.direction === 'sell') d.collateralFor(o.instrument, o.amount).then((c) => { setCollateral(c); setBuffer(Math.round(c * 2)) }).catch(() => {})
       setStep({ kind: 'review' })
       if (!dialog.current?.open) dialog.current?.showModal()
       return
@@ -358,7 +367,7 @@ export default function App() {
   const px = limit ? Number(limit) || undefined : quote
   const n = Number(amount) || 0
   const usd = (x?: number) => (x ? `$${(x * n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—')
-  const busy = step && !['done', 'error', 'deposit'].includes(step.kind)
+  const busy = step && !['review', 'done', 'error', 'deposit'].includes(step.kind)
 
   return (
     <main>
@@ -393,7 +402,7 @@ export default function App() {
             : <label>
                 $<input type="text" inputMode="decimal" value={total} onChange={(e) => { const t = e.target.value.replace(/[^\d.]/g, ''); setTotal(t); setLimit(n ? String(Math.round((Number(t) / n) * 100) / 100) : t) }} style={{ width: `${Math.max(1, total.length) + 0.5}ch` }} autoFocus />
                 {' '}for {n} contract{n === 1 ? '' : 's'} (${(Number(limit) || 0).toFixed(2)} each), waits for someone to {stance === 'do' ? 'sell' : 'buy'}.
-                <button className="text" onClick={() => setLimit(undefined)}>If you prefer, {stance === 'do' ? 'buy' : 'sell'} now instead.</button>
+                <button className="text" onClick={() => setLimit(undefined)}>If you prefer, {stance === 'do' ? 'pay' : 'receive'} now instead.</button>
               </label>}
         </div>
       </div>
@@ -409,15 +418,19 @@ export default function App() {
             </small>
             {order.direction === 'sell' && (
               <small className="collateral">
-                You receive ${((order.limit ?? order.price) * order.amount).toFixed(2)} up front. This posts collateral: Derive locks
-                {collateral != null ? ` about $${collateral.toFixed(2)}` : ' some'} of your USDC until the position is closed or expires, and losses come out of it if {order.sentence.currency} moves against you.
+                You receive ${((order.limit ?? order.price) * order.amount).toFixed(2)} up front. You choose how much USDC to keep behind it as a liquidation buffer
+                {collateral != null && buffer != null ? <>
+                  : <b>${buffer.toLocaleString()}</b>
+                  <input type="range" min={Math.ceil(collateral)} max={Math.ceil(collateral * 6)} step={Math.max(1, Math.round(collateral / 100))} value={buffer} onChange={(e) => setBuffer(Number(e.target.value))} aria-label="collateral" />
+                  <span>Derive needs at least ${Math.ceil(collateral).toLocaleString()}. With ${buffer.toLocaleString()}, you'd be liquidated roughly if {order.sentence.currency} goes {order.sentence.side === 'above' ? 'above' : 'below'} ${Math.round(liquidationPrice(leg(order), buffer, collateral)!).toLocaleString()} — more buffer pushes that further away.</span>
+                </> : '.'}
               </small>
             )}
           </p>
         )}
         {order && (
-          <Payoff currency={order.sentence.currency} spot={ticker?.I ? Number(ticker.I) : undefined}
-            leg={{ type: order.sentence.side === 'above' ? 'C' : 'P', strike: order.sentence.strike, premium: order.limit ?? order.price, n: order.amount, long: order.direction === 'buy' }} />
+          <Payoff currency={order.sentence.currency} spot={ticker?.I ? Number(ticker.I) : undefined} leg={leg(order)}
+            liq={order.direction === 'sell' && collateral != null && buffer != null ? liquidationPrice(leg(order), buffer, collateral) : undefined} />
         )}
         {step?.kind === 'review' && order && (
           <button className="confirm" onClick={() => go(lastOverride.current, true)}>
