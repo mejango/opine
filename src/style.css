@@ -103,7 +103,7 @@ dialog form.x button:hover:not(:disabled), dialog form.x button:focus-visible { 
 .feed header { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12px; }
 .feed header b { font-weight: 500; font-family: ui-monospace, monospace; }
 .feed ul.top header b { font-family: inherit; }
-.feed ul.top header big { font-size: 28px; font-weight: 600; color: var(--teal); margin-right: 4px; font-variant-numeric: tabular-nums; line-height: 1; }
+.feed ul.top header big { font-size: 28px; font-weight: 600; margin-right: 4px; font-variant-numeric: tabular-nums; line-height: 1; }
 .feed li p { margin: 6px 0 2px; font-size: 17px; font-weight: 500; }
 .feed li small { display: block; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
 .feed footer { margin-top: 8px; }
@@ -120,7 +120,7 @@ dialog form.x button:hover:not(:disabled), dialog form.x button:focus-visible { 
 .mine li p { margin: 0 0 2px; font-size: 17px; font-weight: 500; padding-right: 6em; }
 .mine li small { display: block; color: var(--muted); font-size: 12px; }
 .mine li b { position: absolute; top: 14px; right: 16px; font-size: 16px; font-variant-numeric: tabular-nums; }
-.mine .gain { color: var(--yes); } .mine .loss { color: var(--no); }
+.mine .gain, .feed .gain { color: var(--yes); } .mine .loss, .feed .loss { color: var(--no); }
 .mine footer { display: flex; gap: 16px; margin-top: 8px; }
 .mine footer button.text { font: inherit; font-size: 12px; border: 0; padding: 0; background: none; color: var(--muted); cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--muted) 40%, transparent); text-underline-offset: 3px; }
 .mine footer button.text:hover { color: var(--fg); text-decoration-color: currentColor; }
