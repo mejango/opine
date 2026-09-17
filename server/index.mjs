@@ -81,9 +81,39 @@ function page(url) {
   return indexHtml.replace('</head>', `${tags}</head>`).replace('<title>Opine</title>', `<title>${esc(title)}</title>`)
 }
 
+// address → X handle, from Privy's user list (server-side only: needs the app secret). Empty when not configured.
+const PRIVY_ID = process.env.PRIVY_APP_ID, PRIVY_SECRET = process.env.PRIVY_APP_SECRET
+let who = { at: 0, map: {} }
+async function whoMap() {
+  if (!PRIVY_ID || !PRIVY_SECRET) return {}
+  if (Date.now() - who.at < 60_000) return who.map
+  const map = {}
+  let cursor
+  for (let page = 0; page < 20; page++) { // ponytail: 2k users; paginate smarter when that's a problem
+    const r = await fetch(`https://auth.privy.io/api/v1/users?limit=100${cursor ? `&cursor=${cursor}` : ''}`, {
+      headers: { authorization: 'Basic ' + Buffer.from(`${PRIVY_ID}:${PRIVY_SECRET}`).toString('base64'), 'privy-app-id': PRIVY_ID },
+      signal: AbortSignal.timeout(8000),
+    }).then((r) => r.json()).catch(() => null)
+    if (!r?.data) break
+    for (const u of r.data) {
+      const x = u.linked_accounts?.find((a) => a.type === 'twitter_oauth')?.username
+      if (!x) continue
+      for (const a of u.linked_accounts) if (a.type === 'wallet' && a.address) map[a.address.toLowerCase()] = x
+    }
+    cursor = r.next_cursor
+    if (!cursor) break
+  }
+  who = { at: Date.now(), map }
+  return map
+}
+
 createServer(async (req, res) => {
   const url = new URL(req.url, `https://${req.headers.host ?? 'opine.money'}`)
   try {
+    if (url.pathname === '/who') {
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'public, max-age=60' }).end(JSON.stringify(await whoMap()))
+      return
+    }
     if (url.pathname === '/og.png') {
       const o = opinion(url.searchParams) ?? opinion(new URLSearchParams('i=ETH-20261127-2500-C'))
       const png = await ogPng(o)

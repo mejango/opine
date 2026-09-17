@@ -35,70 +35,14 @@ export async function allOptions() {
 }
 
 // ---- wallet -------------------------------------------------------------
-declare global { interface Window { ethereum?: any } }
-
-export type WalletOption = { name: string; icon?: string; provider?: any }
-
-// Shown even when not installed; a click then goes through WalletConnect (mobile app, Safe, Ambire web…). rdns is the EIP-6963 id.
-export const KNOWN_WALLETS = [
-  { rdns: 'io.metamask', name: 'MetaMask', icon: '/wallets/metamask.svg' },
-  { rdns: 'com.coinbase.wallet', name: 'Coinbase Wallet', icon: '/wallets/coinbase.svg' },
-  { rdns: 'io.rabby', name: 'Rabby', icon: '/wallets/rabby.svg' },
-  { rdns: 'app.phantom', name: 'Phantom', icon: '/wallets/phantom.svg' },
-  { rdns: 'com.ambire.wallet', name: 'Ambire', icon: '/wallets/ambire.png' },
-  { rdns: 'global.safe', name: 'Safe', icon: '/wallets/safe.svg' },
-]
-
-/** WalletConnect session (QR / deep link). Loaded on demand — it's a big dependency. */
-export async function walletConnect() {
-  const projectId = import.meta.env.VITE_WC_PROJECT_ID
-  if (!projectId) throw new Error('WalletConnect is not configured: set VITE_WC_PROJECT_ID (free at cloud.reown.com).')
-  const { EthereumProvider } = await import('@walletconnect/ethereum-provider')
-  const p = await EthereumProvider.init({
-    projectId,
-    chains: [net.chainId],
-    showQrModal: true,
-    methods: ['personal_sign', 'eth_signTypedData_v4'],
-    metadata: { name: 'Opine', description: 'Options in a sentence', url: location.origin, icons: [`${location.origin}/favicon.svg`] },
-  })
-  await p.enable()
-  return p
-}
-
-/** Installed wallets via EIP-6963 announcements; falls back to the legacy window.ethereum. */
-export function discoverWallets(): Promise<WalletOption[]> {
-  return new Promise((resolve) => {
-    const found: (WalletOption & { rdns?: string })[] = []
-    const on = (e: any) => {
-      const { info, provider } = e.detail
-      if (!found.some((w) => w.name === info.name)) found.push({ name: info.name, icon: info.icon, provider, rdns: info.rdns })
-    }
-    window.addEventListener('eip6963:announceProvider', on)
-    window.dispatchEvent(new Event('eip6963:requestProvider'))
-    setTimeout(() => {
-      window.removeEventListener('eip6963:announceProvider', on)
-      if (!found.length && window.ethereum) found.push({ name: 'Browser wallet', provider: window.ethereum })
-      const missing = KNOWN_WALLETS.filter((k) => !found.some((f) => f.rdns === k.rdns || f.name.startsWith(k.name)))
-      resolve([...found, ...missing])
-    }, 200)
-  })
-}
-
 export const chain = NETWORK === 'mainnet' ? mainnet : sepolia
 
-export async function connectWallet(provider: any): Promise<{ wallet: WalletClient; address: Address }> {
-  const wallet = createWalletClient({ chain, transport: custom(provider) })
-  const [address] = await wallet.requestAddresses()
-  // Wallets refuse typed-data signatures whose domain.chainId isn't the active chain, so line it up now.
-  if ((await wallet.getChainId()) !== chain.id) {
-    try { await wallet.switchChain({ id: chain.id }) }
-    catch { await wallet.addChain({ chain }); await wallet.switchChain({ id: chain.id }) }
-  }
-  provider.on?.('accountsChanged', () => location.reload()) // ponytail: state is per-address; a reload is the honest reset
-  provider.on?.('chainChanged', () => location.reload())
-  return { wallet, address }
+/** Wrap a Privy ConnectedWallet (embedded or external) as a viem client on Derive's chain. */
+export async function connectWallet(w: { address: string; getEthereumProvider(): Promise<any>; switchChain(id: number): Promise<void> }): Promise<{ wallet: WalletClient; address: Address }> {
+  await w.switchChain(chain.id) // wallets refuse typed-data signatures whose domain.chainId isn't the active chain
+  const wallet = createWalletClient({ chain, transport: custom(await w.getEthereumProvider()) })
+  return { wallet, address: w.address as Address }
 }
-
 /** Log the public connection in as the owner (one wallet popup). */
 export async function ownerLogin(wallet: WalletClient, address: Address) {
   await ready

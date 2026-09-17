@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DeriveClient } from '@derivexyz/derive-ts'
 import type { Address, WalletClient } from 'viem'
+import { usePrivy, useWallets, useLogin } from '@privy-io/react-auth'
+import { useWho } from './who'
 import { buildMenu, expiryLabel, instrumentFor, parseInstrument, pick, resolve, type Instrument, type Menu, type Sentence, type Ticker } from './sentence'
 import * as d from './derive'
 import { payoff, stats, type Leg } from './payoff'
@@ -110,13 +112,17 @@ export default function App() {
   ] : [])
   const [loadError, setLoadError] = useState<string>()
   // The modal: what the click is doing right now.
-  const [step, setStep] = useState<{ kind: 'connecting' | 'choose' | 'deposit' | 'signing' | 'placing' | 'done' | 'error'; text?: string }>()
-  const [wallets, setWallets] = useState<d.WalletOption[]>([])
+  const [step, setStep] = useState<{ kind: 'connecting' | 'deposit' | 'signing' | 'placing' | 'done' | 'error'; text?: string }>()
+  const privy = usePrivy()
+  const { wallets: privyWallets } = useWallets()
+  const { login } = useLogin()
+  const resume = useRef<() => void>() // what to do once Privy has produced a wallet
   const [order, setOrder] = useState<{ instrument: string; direction: 'buy' | 'sell'; price: number; amount: number; sentence: Sentence; stance: 'do' | 'dont'; limit?: number }>()
   const dialog = useRef<HTMLDialogElement>(null)
   const trader = useRef<DeriveClient>()
   const [feed, setFeed] = useState<d.Tape[]>([])
   const [tab, setTab] = useState<'latest' | 'mine'>('latest') // mobile only: the two columns become tabs
+  const who = useWho(feed.map((t) => t.wallet))
   const copying = useRef(false) // a copied opine opens the modal as soon as its price lands
 
   // Recent opines: the public option tape, every 15 s.
@@ -193,20 +199,20 @@ export default function App() {
     setPositions(r.positions.filter((p: any) => Number(p.amount) !== 0))
   }
 
-  /** Wallet → login → subaccount. Returns undefined when the wallet has no Derive account yet (modal shows deposit). */
-  const connect = async (provider?: any) => {
+  // Privy hands us a wallet after its own modal; whatever click started this resumes then.
+  useEffect(() => {
+    if (privy.authenticated && privyWallets.length && resume.current) { const r = resume.current; resume.current = undefined; r() }
+  }, [privy.authenticated, privyWallets.length])
+
+  /** Wallet → login → subaccount. Returns undefined when the wallet has no Derive account yet (modal shows deposit),
+   *  or when Privy still has to log the user in (the caller is re-run afterwards). */
+  const connect = async (again: () => void) => {
     setStep({ kind: 'connecting' })
     let w = wallet
     if (!w) {
-      if (provider === 'wc') provider = await d.walletConnect()
-      if (!provider) {
-        const found = await d.discoverWallets()
-        const installed = found.filter((f) => f.provider)
-        if (!installed.length) { setWallets(found); setStep({ kind: 'choose' }); return } // nothing installed: show what works
-        if (installed.length > 1) { setWallets(found); setStep({ kind: 'choose' }); return } // let them pick
-        provider = installed[0].provider
-      }
-      w = await d.connectWallet(provider)
+      const pw = privyWallets.find((x) => x.walletClientType === 'privy') ?? privyWallets[0]
+      if (!privy.authenticated || !pw) { resume.current = again; dialog.current?.close(); login(); return }
+      w = await d.connectWallet(pw)
       setWallet(w)
     }
     if (subaccountId != null) return { w, id: subaccountId }
@@ -236,10 +242,10 @@ export default function App() {
   }
 
   /** Just sign in (for the positions column): connect, onboard if needed, mint key, load positions. */
-  const signIn = async (provider?: any) => {
+  const signIn = async () => {
     if (!dialog.current?.open) dialog.current?.showModal()
     try {
-      const acct = await connect(provider)
+      const acct = await connect(signIn)
       if (!acct) return
       const c = await ensureTrader(acct.w)
       await refreshPositions(c, acct.id)
@@ -251,7 +257,7 @@ export default function App() {
 
   /** The whole flow behind one click: connect, onboard if needed, sign once, place, report.
    *  `override` places against an existing position (unwind / double down) instead of the sentence. */
-  const go = async (provider?: any, override?: { instrument: string; direction: 'buy' | 'sell'; amount: number }) => {
+  const go = async (override?: { instrument: string; direction: 'buy' | 'sell'; amount: number }) => {
     if (!menu || !s) return
     let o
     if (override) {
@@ -266,7 +272,7 @@ export default function App() {
     setOrder(o)
     if (!dialog.current?.open) dialog.current?.showModal()
     try {
-      const acct = await connect(provider)
+      const acct = await connect(() => go(override))
       if (!acct) return
       const c = await ensureTrader(acct.w)
       setStep({ kind: 'placing' })
@@ -324,7 +330,7 @@ export default function App() {
   const minAmt = Number(inst?.minimum_amount ?? 0.1), stepAmt = Number(inst?.amount_step ?? 0.01)
   const step_ = (dir: 1 | -1) => setAmount(String(Math.max(minAmt, Math.round((n + dir) * 100) / 100)))
   const usd = (x?: number) => (x ? `$${(x * n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—')
-  const busy = step && !['done', 'error', 'deposit', 'choose'].includes(step.kind)
+  const busy = step && !['done', 'error', 'deposit'].includes(step.kind)
 
   return (
     <main>
@@ -388,16 +394,6 @@ export default function App() {
           )
         })()}
         {step?.kind === 'connecting' && <p>Connecting wallet…</p>}
-        {step?.kind === 'choose' && (
-          <div className="wallets">
-            <p>Connect with</p>
-            <div>
-              {wallets.map((w) => w.provider
-                ? <button key={w.name} title={w.name} aria-label={w.name} onClick={() => go(w.provider)}>{w.icon ? <img src={w.icon} alt="" /> : <span>{w.name[0]}</span>}</button>
-                : <button key={w.name} className="missing" title={`${w.name} via WalletConnect`} aria-label={`${w.name} via WalletConnect`} onClick={() => go('wc')}><img src={w.icon} alt="" /></button>)}
-            </div>
-          </div>
-        )}
         {step?.kind === 'signing' && <p>Sign once to authorise a 30-day trading key. Trades after this need no signature.</p>}
         {step?.kind === 'placing' && <p>Placing…</p>}
         {step?.kind === 'done' && <p className="ok">{step.text}</p>}
@@ -428,7 +424,9 @@ export default function App() {
               return (
                 <li key={t.trade_id}>
                   <header>
-                    <b>{t.wallet.slice(0, 6)}…{t.wallet.slice(-4)}</b>
+                    <b>{who[t.wallet.toLowerCase()]?.x
+                      ? <a href={`https://x.com/${who[t.wallet.toLowerCase()]!.x}`} target="_blank" rel="noreferrer">@{who[t.wallet.toLowerCase()]!.x}</a>
+                      : who[t.wallet.toLowerCase()]?.ens ?? `${t.wallet.slice(0, 6)}…${t.wallet.slice(-4)}`}</b>
                     <time dateTime={new Date(t.timestamp).toISOString()}>{ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.round(ago / 60)}h` : `${Math.round(ago / 1440)}d`} ago</time>
                   </header>
                   <p>{t.direction === 'buy' ? 'Thinks' : "Doesn't think"} {p.currency} will be {p.side} ${p.strike.toLocaleString()}<br />by {expiryLabel(p.expiry)}.</p>
@@ -458,8 +456,8 @@ export default function App() {
                   <small>{size} contract{size === 1 ? '' : 's'}, {long ? 'paid' : 'received'} ${avg.toFixed(2)} each, now ${mark.toFixed(2)}</small>
                   <b className={pnl >= 0 ? 'gain' : 'loss'}>{pnl >= 0 ? '+' : '−'}${Math.abs(pnl).toFixed(2)}</b>
                   <footer>
-                    <button className="text" onClick={() => go(undefined, { instrument: p.instrument_name, direction: long ? 'sell' : 'buy', amount: size })}>{pnl >= 0 ? 'Take profits' : 'Take losses'}</button>
-                    <button className="text" onClick={() => go(undefined, { instrument: p.instrument_name, direction: long ? 'buy' : 'sell', amount: size })}>Double down</button>
+                    <button className="text" onClick={() => go({ instrument: p.instrument_name, direction: long ? 'sell' : 'buy', amount: size })}>{pnl >= 0 ? 'Take profits' : 'Take losses'}</button>
+                    <button className="text" onClick={() => go({ instrument: p.instrument_name, direction: long ? 'buy' : 'sell', amount: size })}>Double down</button>
                   </footer>
                 </li>
               )

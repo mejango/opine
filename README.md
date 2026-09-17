@@ -6,7 +6,7 @@ A one-sentence front end for buying and selling options on [Derive V3](https://d
 Yes buys the option at the ask; No sells it at the bid. `above` → calls, `below` → puts.
 
 - Static site, no server: `@derivexyz/derive-ts` runs in the browser over WebSocket.
-- Your wallet signs twice, ever: login, and a 30-day trade-only session key kept in `localStorage`.
+- Log in with X, email or a wallet (Privy). X handles label the feed. Your wallet signs twice, ever: login, and a 30-day trade-only session key kept in `localStorage`.
 - No Derive account yet? The page shows a USDC deposit address that creates one.
 
 ```sh
@@ -16,5 +16,5 @@ npm test         # sentence mapping + EIP-712 signing equivalence
 npm run build    # dist/
 ```
 
-`VITE_DERIVE_NETWORK=testnet` (default, Sepolia USDC) or `mainnet` once Derive V3 ships it.
+Env (see `.env.example`): `VITE_DERIVE_NETWORK` (`testnet` default, or `mainnet`), `VITE_PRIVY_APP_ID`, `VITE_REFERRAL_CODE`; server-side `PRIVY_APP_ID` + `PRIVY_APP_SECRET` power the `/who` handle lookup.
 Testnet USDC: connect at https://testnet.app.derive.xyz/developers and click Mint.

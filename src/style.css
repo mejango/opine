@@ -45,14 +45,6 @@ dialog button { font: inherit; font-size: 15px; padding: 6px 12px; border: 1px s
 dialog button.text { border: 0; padding: 6px 8px; color: var(--muted); }
 dialog button.text:hover:not(:disabled), dialog button.text:focus-visible { color: var(--fg); background: color-mix(in srgb, currentColor 8%, transparent); outline: none; }
 dialog button:disabled { opacity: .4; cursor: default; }
-.wallets { margin-bottom: 12px; }
-.wallets p { margin: 0 0 8px; color: var(--muted); }
-.wallets div { display: flex; gap: 8px; flex-wrap: wrap; }
-.wallets button, .wallets a { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); background: transparent; color: inherit; cursor: pointer; text-decoration: none; }
-.wallets button:hover, .wallets button:focus-visible { border-color: var(--fg); outline: none; }
-.wallets img { width: 28px; height: 28px; }
-.wallets span { font-weight: 600; font-size: 16px; }
-.wallets button.missing { opacity: .45; } .wallets button.missing:hover { opacity: 1; }
 dialog form.x { position: absolute; top: 8px; right: 8px; margin: 0; }
 dialog form.x button { border: 0; padding: 0; width: 32px; height: 32px; font-size: 24px; line-height: 1; color: var(--muted); }
 dialog form.x button:hover:not(:disabled), dialog form.x button:focus-visible { color: var(--fg); background: color-mix(in srgb, currentColor 8%, transparent); outline: none; }
