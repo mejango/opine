@@ -125,6 +125,7 @@ export default function App() {
   const resume = useRef<() => void>() // what to do once Privy has produced a wallet
   const [order, setOrder] = useState<{ instrument: string; direction: 'buy' | 'sell'; price: number; amount: number; sentence: Sentence; stance: 'do' | 'dont'; limit?: number }>()
   const dialog = useRef<HTMLDialogElement>(null)
+  const [collateral, setCollateral] = useState<number>() // for sells: what Derive will lock
   const trader = useRef<DeriveClient>()
   const [feed, setFeed] = useState<d.Tape[]>([])
   const [tab, setTab] = useState<'latest' | 'mine'>('latest') // mobile only: the two columns become tabs
@@ -276,6 +277,8 @@ export default function App() {
       o = { ...resolve(menu, s, stance === 'do' ? 'yes' : 'no', ticker)!, amount: Number(amount), sentence: { ...s }, stance, limit: limit ? Number(limit) : undefined }
     }
     setOrder(o)
+    setCollateral(undefined)
+    if (o.direction === 'sell') d.collateralFor(o.instrument, o.amount).then(setCollateral).catch(() => {})
     if (!dialog.current?.open) dialog.current?.showModal()
     try {
       const acct = await connect(() => go(override))
@@ -385,6 +388,12 @@ export default function App() {
               {order.limit ? (order.direction === 'buy' ? 'Offering to buy' : 'Offering to sell') : order.direction === 'buy' ? 'Buying' : 'Selling'} {order.amount} {order.sentence.currency} {order.sentence.side === 'above' ? 'call' : 'put'}{order.amount === 1 ? '' : 's'} at ${(order.limit ?? order.price).toFixed(2)} each{order.limit ? ' (limit)' : ''} on Derive {d.NETWORK}
               {wallet ? ` from ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''}{subaccountId != null ? ` (subaccount ${subaccountId})` : ''}.
             </small>
+            {order.direction === 'sell' && (
+              <small className="collateral">
+                You receive ${((order.limit ?? order.price) * order.amount).toFixed(2)} up front. This posts collateral: Derive locks
+                {collateral != null ? ` about $${collateral.toFixed(2)}` : ' some'} of your USDC until the position is closed or expires, and losses come out of it if {order.sentence.currency} moves against you.
+              </small>
+            )}
           </p>
         )}
         {order && (

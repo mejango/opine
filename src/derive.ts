@@ -25,6 +25,18 @@ export async function recentOpines(): Promise<Tape[]> {
   return (r.trades as Tape[]).filter((t) => t.liquidity_role === 'taker')
 }
 
+/** USDC Derive will hold as collateral for selling `amount` of an option (standard margin), via the public simulator. */
+export async function collateralFor(instrument: string, amount: number) {
+  await ready
+  const base = 1_000_000
+  const r: any = await publicClient.send('public/get_margin' as any, {
+    margin_type: 'SM',
+    simulated_positions: [{ instrument_name: instrument, amount: String(-amount) }],
+    simulated_collaterals: [{ asset_name: 'USDC', amount: String(base) }],
+  } as any)
+  return base - Number(r.post_initial_margin)
+}
+
 /** Every live option across currencies; the API pages at 1000. */
 export async function allOptions() {
   await ready
