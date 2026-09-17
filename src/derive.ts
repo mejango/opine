@@ -1,5 +1,5 @@
 // Derive V3 in the browser: the SDK over WebSocket, the user's wallet only for two signatures.
-import { DeriveClient, ProtocolScopeCode, OffchainScope, channel, loginParams, resolveNetwork, type NetworkName } from '@derivexyz/derive-ts'
+import { DeriveClient, ProtocolScopeCode, OffchainScope, loginParams, resolveNetwork, type NetworkName } from '@derivexyz/derive-ts'
 import { encodeSetSessionKeyActionData } from '@derivexyz/derive-ts/codecs'
 import { Wallet } from 'ethers'
 import { createWalletClient, custom, type Address, type WalletClient } from 'viem'
@@ -195,16 +195,4 @@ export function placeOpinion(c: DeriveClient, p: { subaccountId: number; instrum
     timeInForce: p.limit ? 'gtc' : 'ioc',
     label: 'opine',
   }) as Promise<any>
-}
-
-export type Book = { bids: [string, string][]; asks: [string, string][] }
-
-/** Live top-20 book for an instrument; returns the unsubscribe. */
-export const bookGroup = (strike: number) => (strike >= 10000 ? 10 : 1) // ponytail: $1 buckets read fine below BTC-sized strikes
-
-export async function watchBook(instrument: string, strike: number, onBook: (b: Book) => void) {
-  await ready
-  const ch = channel('orderbook.{instrument_name}.{group}.{depth}', { instrument_name: instrument, group: String(bookGroup(strike)) as '1' | '10', depth: '100' })
-  const sub = await publicClient.subscriptions.subscribe(ch, (b: any) => onBook({ bids: b.bids, asks: b.asks }))
-  return () => sub.unsubscribe().catch(() => {})
 }

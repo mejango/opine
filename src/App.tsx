@@ -91,47 +91,6 @@ function Payoff({ leg, spot, currency }: { leg: Leg; spot?: number; currency: st
   )
 }
 
-/** Ladder over a fixed price grid: bids above the mid line (best nearest it), asks below, empty buckets kept so range reads. */
-function Depth({ book, instrument, group }: { book?: d.Book; instrument: string; group: number }) {
-  const h = <h2>Market depth <span>{instrument}</span></h2>
-  if (!book || (!book.bids.length && !book.asks.length)) return <div className="depth">{h}<p className="muted">No resting orders.</p></div>
-  const bestBid = book.bids[0] ? Number(book.bids[0][0]) : undefined, bestAsk = book.asks[0] ? Number(book.asks[0][0]) : undefined
-  const N = 15
-  const hiBid = bestBid ?? (bestAsk! - group), loAsk = bestAsk ?? (bestBid! + group)
-  const grid = (from: number, dir: 1 | -1) => Array.from({ length: N }, (_, i) => Math.round((from + dir * i * group) * 100) / 100)
-  // Sum each level into the grid row it falls in, anchored on the best price of its side.
-  const bucket = (xs: [string, string][], from: number, dir: 1 | -1) => {
-    const m = new Map<number, number>()
-    for (const [p, a] of xs) {
-      const key = Math.round((from + dir * Math.round(Math.abs(Number(p) - from) / group) * group) * 100) / 100
-      m.set(key, (m.get(key) ?? 0) + Number(a))
-    }
-    return m
-  }
-  const bids = bucket(book.bids, hiBid, -1), asks = bucket(book.asks, loAsk, 1)
-  const max = Math.max(...bids.values(), ...asks.values(), 1)
-  const row = (p: number, side: 'bid' | 'ask') => {
-    const a = (side === 'bid' ? bids : asks).get(p) ?? 0
-    return (
-      <li key={`${side}${p}`} className={`${side}${a ? '' : ' empty'}`} title={a ? `${a} ${side === 'bid' ? 'bid' : 'offered'} at $${p.toFixed(2)}` : `nothing at $${p.toFixed(2)}`}>
-        <span className="p">${p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-        <span className="bar"><i style={{ width: `${(a / max) * 100}%` }} /></span>
-        <span className="a">{a ? a.toLocaleString() : ''}</span>
-      </li>
-    )
-  }
-  return (
-    <div className="depth">
-      {h}
-      <ol className="ladder">
-        {grid(hiBid, -1).reverse().map((p) => row(p, 'bid'))}
-        <li className="mid">{bestBid != null && bestAsk != null ? `mid $${((bestBid + bestAsk) / 2).toFixed(2)}, spread $${(bestAsk - bestBid).toFixed(2)}` : 'one-sided book'}</li>
-        {grid(loAsk, 1).map((p) => row(p, 'ask'))}
-      </ol>
-    </div>
-  )
-}
-
 export default function App() {
   const [menu, setMenu] = useState<Menu>()
   const [s, setS] = useState<Sentence>()
@@ -151,7 +110,6 @@ export default function App() {
   const dialog = useRef<HTMLDialogElement>(null)
   const trader = useRef<DeriveClient>()
   const [feed, setFeed] = useState<d.Tape[]>([])
-  const [book, setBook] = useState<d.Book>()
   const copying = useRef(false) // a copied opine opens the modal as soon as its price lands
 
   // Recent opines: the public option tape, every 15 s.
@@ -178,13 +136,19 @@ export default function App() {
   useEffect(() => {
     if (!inst) return
     let live = true
-    setTicker(undefined); setBook(undefined)
+    setTicker(undefined)
     const tick = () => d.publicClient.marketData.getTicker(inst.instrument_name).then((t: any) => live && setTicker(t)).catch(() => {})
     tick()
     const id = setInterval(tick, 3000)
-    const stop = d.watchBook(inst.instrument_name, s!.strike, (b) => live && setBook(b))
-    return () => { live = false; clearInterval(id); stop.then((f) => f()) }
+    return () => { live = false; clearInterval(id) }
   }, [inst?.instrument_name])
+
+  // Positions refresh every 10 s while signed in (marks and P&L move).
+  useEffect(() => {
+    if (!trader.current || subaccountId == null) return
+    const id = setInterval(() => refreshPositions(trader.current!, subaccountId).catch(() => {}), 10_000)
+    return () => clearInterval(id)
+  }, [subaccountId, trader.current])
 
   // Onboarding: show deposit progress while waiting. Login needs an account, so the user retries once it lands.
   const [pending, setPending] = useState<{ status: string; amount: string }[]>([])
@@ -243,10 +207,34 @@ export default function App() {
     return trader.current
   }
 
-  /** The whole flow behind one click: connect, onboard if needed, sign once, place, report. */
-  const go = async (provider?: any) => {
-    if (!menu || !s || !ticker || !inst) return
-    const o = { ...resolve(menu, s, stance === 'do' ? 'yes' : 'no', ticker)!, amount: Number(amount), sentence: { ...s }, stance, limit: limit ? Number(limit) : undefined }
+  /** Just sign in (for the positions column): connect, onboard if needed, mint key, load positions. */
+  const signIn = async (provider?: any) => {
+    if (!dialog.current?.open) dialog.current?.showModal()
+    try {
+      const acct = await connect(provider)
+      if (!acct) return
+      const c = await ensureTrader(acct.w)
+      await refreshPositions(c, acct.id)
+      dialog.current?.close()
+    } catch (e: any) {
+      setStep({ kind: 'error', text: e?.details || e?.shortMessage || e?.message || String(e) })
+    }
+  }
+
+  /** The whole flow behind one click: connect, onboard if needed, sign once, place, report.
+   *  `override` places against an existing position (unwind / double down) instead of the sentence. */
+  const go = async (provider?: any, override?: { instrument: string; direction: 'buy' | 'sell'; amount: number }) => {
+    if (!menu || !s) return
+    let o
+    if (override) {
+      const t: Ticker = await d.publicClient.marketData.getTicker(override.instrument) as any
+      const ps = parseInstrument(override.instrument)
+      o = { instrument: override.instrument, direction: override.direction, price: Number(override.direction === 'buy' ? t.a : t.b), amount: override.amount,
+        sentence: { currency: ps.currency, expiry: ps.expiry, strike: ps.strike, side: ps.side }, stance: (override.direction === 'buy' ? 'do' : 'dont') as 'do' | 'dont', limit: undefined }
+    } else {
+      if (!ticker || !inst) return
+      o = { ...resolve(menu, s, stance === 'do' ? 'yes' : 'no', ticker)!, amount: Number(amount), sentence: { ...s }, stance, limit: limit ? Number(limit) : undefined }
+    }
     setOrder(o)
     if (!dialog.current?.open) dialog.current?.showModal()
     try {
@@ -254,7 +242,8 @@ export default function App() {
       if (!acct) return
       const c = await ensureTrader(acct.w)
       setStep({ kind: 'placing' })
-      const res = await d.placeOpinion(c, { subaccountId: acct.id, ...o, tickSize: Number(inst.tick_size ?? '0.1') })
+      const tickSize = Number((override ? menu.byName.get(o.instrument)?.tick_size : inst?.tick_size) ?? '0.1')
+      const res = await d.placeOpinion(c, { subaccountId: acct.id, ...o, tickSize })
       const filled = Number(res.order?.filled_amount ?? 0)
       setStep(filled === 0
         ? o.limit
@@ -377,7 +366,7 @@ export default function App() {
             <p><code>{depositAddr}</code></p>
             <p>Only USDC, only on {d.CHAIN_LABEL}. Credits in a minute or two.</p>
             {pending.map((p, i) => <p key={i}>Deposit of {(Number(p.amount) / 1e6).toFixed(2)} USDC: <b>{p.status}</b></p>)}
-            <button onClick={() => go()}>I've deposited — continue</button>
+            <button onClick={() => (order ? go() : signIn())}>I've deposited — continue</button>
           </div>
         )}
       </dialog>
@@ -407,25 +396,34 @@ export default function App() {
           </ul>
         </section>
       )}
-      {inst && <section className="depthcol"><Depth book={book} instrument={inst.instrument_name} group={d.bookGroup(s.strike)} /></section>}
+      <section className="mine">
+        <h2>Your opinions</h2>
+        {!trader.current ? (
+          <p className="muted"><button className="text" onClick={() => signIn()}>Connect</button></p>
+        ) : positions.length === 0 ? (
+          <p className="muted">No opinions yet. Say one above.</p>
+        ) : (
+          <ul>
+            {positions.map((p) => {
+              const ps = parseInstrument(p.instrument_name)
+              const n = Number(p.amount), long = n > 0, size = Math.abs(n)
+              const pnl = Number(p.unrealized_pnl), avg = Number(p.average_price), mark = Number(p.mark_price)
+              return (
+                <li key={p.instrument_name}>
+                  <p>You {long ? 'think' : "don't think"} {ps.currency} will be {ps.side} ${ps.strike.toLocaleString()}<br />by {expiryLabel(ps.expiry)}.</p>
+                  <small>{size} contract{size === 1 ? '' : 's'}, {long ? 'paid' : 'received'} ${avg.toFixed(2)} each, now ${mark.toFixed(2)}</small>
+                  <b className={pnl >= 0 ? 'gain' : 'loss'}>{pnl >= 0 ? '+' : '−'}${Math.abs(pnl).toFixed(2)}</b>
+                  <footer>
+                    <button className="text" onClick={() => go(undefined, { instrument: p.instrument_name, direction: long ? 'sell' : 'buy', amount: size })}>Unwind</button>
+                    <button className="text" onClick={() => go(undefined, { instrument: p.instrument_name, direction: long ? 'buy' : 'sell', amount: size })}>Double down</button>
+                  </footer>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
       </div>
-
-      {positions.length > 0 && (
-        <ul className="positions">
-          {positions.map((p) => {
-            const [cur, ymd, strike, type] = p.instrument_name.split('-')
-            const long = Number(p.amount) > 0
-            const side = type === 'C' ? 'above' : 'below'
-            const when = expiryLabel(Date.UTC(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8)) / 1000)
-            return (
-              <li key={p.instrument_name}>
-                You think {cur} will {long ? '' : 'not '}be {side} ${Number(strike).toLocaleString()} by {when}.
-                <small>{Math.abs(Number(p.amount))} contracts, mark ${Number(p.mark_price).toFixed(2)}, {p.instrument_name}</small>
-              </li>
-            )
-          })}
-        </ul>
-      )}
     </main>
   )
 }
