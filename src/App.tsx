@@ -364,7 +364,7 @@ export default function App() {
           <button onClick={() => step_(10)}>+10</button>
         </div>
         <button className="main" disabled={busy || !px} onClick={() => go()}>
-          <b>{limit ? 'Offer' : stance === 'do' ? 'Pay' : 'Receive'} {px ? usd(px) : <i className="ghost" style={{ width: '4em' }} />}</b>
+          <b>{stance === 'do' ? 'Pay' : 'Receive'} {px ? usd(px) : <i className="ghost" style={{ width: '4em' }} />}</b>
         </button>
         <div className="limit">
           {limit == null
