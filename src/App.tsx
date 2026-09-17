@@ -93,7 +93,8 @@ function Payoff({ leg, spot, currency }: { leg: Leg; spot?: number; currency: st
 
 /** Ladder over a fixed price grid: bids above the mid line (best nearest it), asks below, empty buckets kept so range reads. */
 function Depth({ book, instrument, group }: { book?: d.Book; instrument: string; group: number }) {
-  if (!book || (!book.bids.length && !book.asks.length)) return <div className="depth"><h2>Market depth</h2><p className="muted">No resting orders on {instrument}.</p></div>
+  const h = <h2>Market depth <span>{instrument}</span></h2>
+  if (!book || (!book.bids.length && !book.asks.length)) return <div className="depth">{h}<p className="muted">No resting orders.</p></div>
   const bestBid = book.bids[0] ? Number(book.bids[0][0]) : undefined, bestAsk = book.asks[0] ? Number(book.asks[0][0]) : undefined
   const N = 15
   const hiBid = bestBid ?? (bestAsk! - group), loAsk = bestAsk ?? (bestBid! + group)
@@ -121,7 +122,7 @@ function Depth({ book, instrument, group }: { book?: d.Book; instrument: string;
   }
   return (
     <div className="depth">
-      <h2>Market depth</h2>
+      {h}
       <ol className="ladder">
         {grid(hiBid, -1).reverse().map((p) => row(p, 'bid'))}
         <li className="mid">{bestBid != null && bestAsk != null ? `mid $${((bestBid + bestAsk) / 2).toFixed(2)}, spread $${(bestAsk - bestBid).toFixed(2)}` : 'one-sided book'}</li>

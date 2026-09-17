@@ -92,6 +92,7 @@ dialog form.x button:hover:not(:disabled), dialog form.x button:focus-visible { 
 /* Depth ladder */
 .depthcol { position: sticky; top: 24px; }
 .depth h2 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+.depth h2 span { float: right; letter-spacing: 0; text-transform: none; font-weight: 400; font-family: ui-monospace, monospace; font-size: 12px; opacity: .7; }
 .depth .muted { color: var(--muted); font-size: 14px; }
 .ladder { list-style: none; margin: 0; padding: 0; font-size: 12px; font-variant-numeric: tabular-nums; max-height: 70vh; overflow-y: auto; }
 .ladder li { display: grid; grid-template-columns: 5.5em 1fr 4em; gap: 8px; align-items: center; height: 16px; }
