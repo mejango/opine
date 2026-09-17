@@ -334,8 +334,8 @@ export default function App() {
           {limit == null
             ? <button className="text" onClick={() => setLimit(quote?.toFixed(2) ?? '')}>or name your price</button>
             : <label>
-                $<input type="number" min={0} step={inst?.tick_size ?? 0.1} value={limit} onChange={(e) => setLimit(e.target.value)} autoFocus /> each, rests until filled
-                <button className="text" onClick={() => setLimit(undefined)}>use market</button>
+                $<input type="number" min={0} step={inst?.tick_size ?? 0.1} value={limit} onChange={(e) => setLimit(e.target.value)} autoFocus /> each, rests until filled.
+                <button className="text" onClick={() => setLimit(undefined)}>{stance === 'do' ? 'Buy' : 'Sell'} now instead.</button>
               </label>}
         </div>
       </div>
