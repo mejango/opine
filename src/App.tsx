@@ -335,7 +335,7 @@ export default function App() {
           {limit == null
             ? <button className="text" onClick={() => setLimit(quote?.toFixed(2) ?? '')}>or name your price</button>
             : <label>
-                $<input type="text" inputMode="decimal" value={limit} onChange={(e) => setLimit(e.target.value.replace(/[^\d.]/g, ''))} style={{ width: `${Math.max(1, limit.length) + 0.5}ch` }} autoFocus /> each, rests until filled.
+                $<input type="text" inputMode="decimal" value={limit} onChange={(e) => setLimit(e.target.value.replace(/[^\d.]/g, ''))} style={{ width: `${Math.max(1, limit.length) + 0.5}ch` }} autoFocus /> each, waits for someone to {stance === 'do' ? 'sell' : 'buy'}.
                 <button className="text" onClick={() => setLimit(undefined)}>{stance === 'do' ? 'Buy' : 'Sell'} now instead.</button>
               </label>}
         </div>
