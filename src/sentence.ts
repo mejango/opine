@@ -73,3 +73,10 @@ export function resolve(menu: Menu, s: Sentence, answer: 'yes' | 'no', t: Ticker
 
 export const expiryLabel = (unixSec: number) =>
   new Date(unixSec * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+
+/** ETH-20261225-3000-C → the sentence it expresses (expiry = 08:00 UTC that day, as Derive lists it). */
+export function parseInstrument(name: string): Sentence & { type: 'C' | 'P' } {
+  const [currency, ymd, strike, type] = name.split('-')
+  const expiry = Date.UTC(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8), 8) / 1000
+  return { currency, expiry, strike: Number(strike), side: type === 'C' ? 'above' : 'below', type: type as 'C' | 'P' }
+}

@@ -15,6 +15,15 @@ export const ready = publicClient.connect()
 export const spot = (currency: string) =>
   publicClient.marketData.getTicker(`${currency}-PERP`).then((t: any) => Number(t.I)).catch(() => 0)
 
+export type Tape = { trade_id: string; instrument_name: string; timestamp: number; trade_price: string; trade_amount: string; direction: 'buy' | 'sell'; wallet: string; liquidity_role: 'maker' | 'taker' }
+
+/** Recent option fills, taker side only — the side that had the opinion. */
+export async function recentOpines(): Promise<Tape[]> {
+  await ready
+  const r: any = await publicClient.marketData.getPublicTradeHistory({ instrumentType: 'option', pageSize: 60 })
+  return (r.trades as Tape[]).filter((t) => t.liquidity_role === 'taker')
+}
+
 /** Every live option across currencies; the API pages at 1000. */
 export async function allOptions() {
   await ready
@@ -135,7 +144,7 @@ export async function tradingClient(owner: Address, sessionKey: string) {
   return c
 }
 
-/** IOC limit at the quoted price ± 1 % so a moving book still fills. */
+/** Market order; the limit is only the slippage cap Derive requires (quote ± 1 %). */
 export function placeOpinion(c: DeriveClient, p: { subaccountId: number; instrument: string; direction: 'buy' | 'sell'; price: number; amount: number; tickSize: number }) {
   const raw = p.direction === 'buy' ? p.price * 1.01 : p.price * 0.99
   const limitPrice = (Math.round(raw / p.tickSize) * p.tickSize).toFixed(Math.max(0, -Math.floor(Math.log10(p.tickSize))))
@@ -145,7 +154,7 @@ export function placeOpinion(c: DeriveClient, p: { subaccountId: number; instrum
     direction: p.direction,
     amount: p.amount,
     limitPrice,
-    orderType: 'limit',
+    orderType: 'market',
     timeInForce: 'ioc',
     label: 'opine',
   }) as Promise<any>

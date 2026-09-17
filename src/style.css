@@ -1,5 +1,5 @@
-:root { color-scheme: light dark; --fg: #111; --bg: #fafafa; --muted: #777; --yes: #1a7f37; --no: #b42318; --teal: #0e7c86; --line: #ddd; }
-@media (prefers-color-scheme: dark) { :root { --fg: #eee; --bg: #111; --muted: #999; --line: #333; --teal: #2dd4bf; } }
+:root { color-scheme: light dark; --fg: #111; --bg: #fafafa; --muted: #777; --yes: #0f8a5f; --no: #d0455b; --teal: #0e7c86; --line: #ddd; }
+@media (prefers-color-scheme: dark) { :root { --fg: #eee; --bg: #111; --muted: #999; --line: #333; --teal: #2dd4bf; --yes: #34d399; --no: #f87171; } }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 18px/1.5 system-ui, sans-serif; }
 main { max-width: 1100px; margin: 0 auto; padding: 48px 16px; }
@@ -63,3 +63,12 @@ dialog form { margin-top: 12px; text-align: right; }
 .payoff .dot { fill: var(--teal); stroke: var(--bg); stroke-width: 2; }
 .payoff .tick { fill: var(--muted); font-size: 11px; }
 .payoff .tip { fill: var(--fg); font-size: 12px; font-weight: 600; }
+/* Feed */
+.feed { margin-top: 64px; }
+.feed h2 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+.feed ul { list-style: none; padding: 0; margin: 0; }
+.feed li { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 16px; }
+.feed li b { font-weight: 600; font-family: ui-monospace, monospace; font-size: 14px; }
+.feed li small { display: block; color: var(--muted); font-size: 13px; }
+.feed button.text { font: inherit; font-size: 15px; padding: 6px 10px; border: 0; background: transparent; color: var(--teal); cursor: pointer; white-space: nowrap; }
+.feed button.text:hover, .feed button.text:focus-visible { background: color-mix(in srgb, currentColor 8%, transparent); outline: none; }

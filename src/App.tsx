@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DeriveClient } from '@derivexyz/derive-ts'
 import type { Address, WalletClient } from 'viem'
-import { buildMenu, expiryLabel, instrumentFor, pick, resolve, type Instrument, type Menu, type Sentence, type Ticker } from './sentence'
+import { buildMenu, expiryLabel, instrumentFor, parseInstrument, pick, resolve, type Instrument, type Menu, type Sentence, type Ticker } from './sentence'
 import * as d from './derive'
 import { payoff, stats, type Leg } from './payoff'
 
@@ -108,6 +108,16 @@ export default function App() {
   const [order, setOrder] = useState<{ instrument: string; direction: 'buy' | 'sell'; price: number; amount: number; sentence: Sentence; stance: 'do' | 'dont' }>()
   const dialog = useRef<HTMLDialogElement>(null)
   const trader = useRef<DeriveClient>()
+  const [feed, setFeed] = useState<d.Tape[]>([])
+  const copying = useRef(false) // a copied opine opens the modal as soon as its price lands
+
+  // Recent opines: the public option tape, every 15 s.
+  useEffect(() => {
+    const load = () => d.recentOpines().then(setFeed).catch(() => {})
+    load()
+    const id = setInterval(load, 15_000)
+    return () => clearInterval(id)
+  }, [])
 
   // Instruments once; ticker for the current instrument every 3 s.
   useEffect(() => {
@@ -125,6 +135,7 @@ export default function App() {
   useEffect(() => {
     if (!inst) return
     let live = true
+    setTicker(undefined)
     const tick = () => d.publicClient.marketData.getTicker(inst.instrument_name).then((t: any) => live && setTicker(t)).catch(() => {})
     tick()
     const id = setInterval(tick, 3000)
@@ -206,6 +217,20 @@ export default function App() {
     } catch (e: any) {
       setStep({ kind: 'error', text: e?.details || e?.shortMessage || e?.message || String(e) }) // viem errors carry a tidy `details`
     }
+  }
+
+  useEffect(() => { if (ticker && copying.current) { copying.current = false; go() } }, [ticker])
+
+  /** Load someone's trade into the sentence and open the order. */
+  const copy = (t: d.Tape) => {
+    const p = parseInstrument(t.instrument_name)
+    const target = pick(menu!, p)
+    if (target.strike !== p.strike || target.expiry !== p.expiry) return // no longer listed
+    setStance(t.direction === 'buy' ? 'do' : 'dont')
+    setAmount(t.trade_amount)
+    setS(target)
+    copying.current = true
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   if (!menu || !s) return (
@@ -297,6 +322,27 @@ export default function App() {
         )}
         <form method="dialog"><button className="text" disabled={busy}>Close</button></form>
       </dialog>
+
+      {feed.length > 0 && (
+        <section className="feed">
+          <h2>Latest opinions</h2>
+          <ul>
+            {feed.map((t) => {
+              const p = parseInstrument(t.instrument_name)
+              const ago = Math.max(1, Math.round((Date.now() - t.timestamp) / 60000))
+              return (
+                <li key={t.trade_id}>
+                  <span>
+                    <b>{t.wallet.slice(0, 6)}…{t.wallet.slice(-4)}</b> {t.direction === 'buy' ? 'does' : "doesn't"} think {p.currency} will be {p.side} ${p.strike.toLocaleString()} by {expiryLabel(p.expiry)}.
+                    <small>{Number(t.trade_amount)} contract{Number(t.trade_amount) === 1 ? '' : 's'} at ${Number(t.trade_price).toFixed(2)} · {ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.round(ago / 60)}h` : `${Math.round(ago / 1440)}d`} ago</small>
+                  </span>
+                  <button className="text" onClick={() => copy(t)}>Copy</button>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
 
       {positions.length > 0 && (
         <ul className="positions">

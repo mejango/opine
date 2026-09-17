@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildMenu, pick, resolve, expiryLabel, type Instrument } from '../src/sentence.ts'
+import { buildMenu, pick, resolve, expiryLabel, parseInstrument, type Instrument } from '../src/sentence.ts'
 
 const inst = (name: string, active = true): Instrument => {
   const [cur, ymd, strike, type] = name.split('-')
@@ -38,4 +38,10 @@ test('resolve maps sentence × yes/no to instrument, direction and price', () =>
   assert.deepEqual(resolve(m, s, 'no', t), { instrument: 'ETH-20270326-3000-C', direction: 'sell', price: 39.8 })
   assert.deepEqual(resolve(m, { ...s, side: 'below' }, 'yes', t), { instrument: 'ETH-20270326-3000-P', direction: 'buy', price: 41.2 })
   assert.deepEqual(resolve(m, { ...s, side: 'below' }, 'no', t), { instrument: 'ETH-20270326-3000-P', direction: 'sell', price: 39.8 })
+})
+
+test('parseInstrument round-trips a Derive option name', () => {
+  const p = parseInstrument('ETH-20270326-3000-P')
+  assert.equal(p.currency, 'ETH'); assert.equal(p.strike, 3000); assert.equal(p.side, 'below')
+  assert.equal(p.expiry, inst('ETH-20270326-3000-P').option_details.expiry)
 })
