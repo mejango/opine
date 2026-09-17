@@ -287,7 +287,7 @@ export default function App() {
       <dialog ref={dialog} onClose={() => setStep(undefined)}>
         {order && (
           <p className="order">
-            <b>You {order.stance === 'do' ? 'do' : "don't"} think {order.sentence.currency} will be {order.sentence.side} ${order.sentence.strike.toLocaleString()} by {expiryLabel(order.sentence.expiry)}.</b>
+            <b>You {order.stance === 'do' ? 'do' : "don't"} think {order.sentence.currency} will be {order.sentence.side} ${order.sentence.strike.toLocaleString()}<br />by {expiryLabel(order.sentence.expiry)}.</b>
             <small>
               {order.direction === 'buy' ? 'Buying' : 'Selling'} {order.amount} {order.sentence.currency} {order.sentence.side === 'above' ? 'call' : 'put'}{order.amount === 1 ? '' : 's'} at ${order.price.toFixed(2)} each on Derive {d.NETWORK}
               {wallet ? ` from ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''}{subaccountId != null ? ` (subaccount ${subaccountId})` : ''}.
@@ -336,7 +336,7 @@ export default function App() {
                     <b>{t.wallet.slice(0, 6)}…{t.wallet.slice(-4)}</b>
                     <time dateTime={new Date(t.timestamp).toISOString()}>{ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.round(ago / 60)}h` : `${Math.round(ago / 1440)}d`} ago</time>
                   </header>
-                  <p>{t.direction === 'buy' ? 'Does' : "Doesn't"} think {p.currency} will be {p.side} ${p.strike.toLocaleString()} by {expiryLabel(p.expiry)}.</p>
+                  <p>{t.direction === 'buy' ? 'Does' : "Doesn't"} think {p.currency} will be {p.side} ${p.strike.toLocaleString()}<br />by {expiryLabel(p.expiry)}.</p>
                   <footer>
                     <button className="text" onClick={() => copy(t)}>Copy</button>
                     <small>{Number(t.trade_amount)} contract{Number(t.trade_amount) === 1 ? '' : 's'} at ${Number(t.trade_price).toFixed(2)}</small>
