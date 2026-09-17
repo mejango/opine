@@ -12,9 +12,9 @@ h1 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: va
 .tog.do { color: var(--yes); } .tog.dont { color: var(--no); }
 .tog select { position: absolute; inset: 0; width: 100%; opacity: 0; pointer-events: none; font: inherit; }
 .card { display: inline-block; margin-bottom: 8px; }
-.limit { margin-top: 6px; font-size: 13px; color: var(--muted); }
-.limit button.text { font: inherit; border: 0; padding: 0; background: none; color: var(--teal); cursor: pointer; }
-.limit button.text:hover { text-decoration: underline; }
+.limit { margin-top: 6px; font-size: 12px; color: var(--muted); }
+.limit button.text { font: inherit; border: 0; padding: 0; background: none; color: var(--muted); cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--muted) 40%, transparent); text-underline-offset: 3px; }
+.limit button.text:hover { color: var(--fg); text-decoration-color: currentColor; }
 .limit label button.text { margin-left: 10px; }
 .limit input { width: 5.5em; font: inherit; color: var(--fg); background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 2px 4px; }
 .limit input:focus { outline: none; border-bottom-color: var(--teal); }
