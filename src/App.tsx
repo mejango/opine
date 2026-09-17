@@ -7,8 +7,13 @@ import { buildMenu, expiryLabel, instrumentFor, parseInstrument, pick, resolve, 
 import * as d from './derive'
 import { payoff, stats, type Leg } from './payoff'
 
-const SIZES = ['0.1', '0.25', '0.5', '1', '2', '5', '10', '25', '50', '100']
-const SIZE_OPTIONS: [string, string][] = SIZES.map((v) => [v, `${v} contract${v === '1' ? '' : 's'}`])
+// Contract sizes the −/+ walk through; an in-between typed value snaps to the next rung.
+const SIZES = [0.1, 0.25, 0.5, 1, 2, 5, 10, 25, 50, 100]
+function ladder(current: string, dir: 1 | -1) {
+  const v = Number(current) || 0.1
+  const next = dir > 0 ? SIZES.find((x) => x > v + 1e-9) : [...SIZES].reverse().find((x) => x < v - 1e-9)
+  return String(next ?? (dir > 0 ? v * 2 : SIZES[0]))
+}
 
 /** A word in the sentence. Click cycles to the next option; press and hold opens the native picker. */
 function Toggle({ value, options, onChange, className }: { value: string; options: [string, string][]; onChange: (v: string) => void; className?: string }) {
@@ -110,6 +115,10 @@ export default function App() {
   const [amount, setAmount] = useState('0.1')
   const [limit, setLimit] = useState<string>() // per contract; set = user named a price → GTC limit instead of market
   const [total, setTotal] = useState('') // what's in the price field: the total for the current count
+  const [fine, setFine] = useState(false) // hold the count to type an exact amount
+  const hold = useRef<number>()
+  const holdStart = () => { hold.current = window.setTimeout(() => { hold.current = undefined; setFine(true) }, 400) }
+  const holdEnd = () => { if (hold.current) { clearTimeout(hold.current); hold.current = undefined } }
   useEffect(() => { if (limit != null) setTotal(limit === '' ? '' : (Number(limit) * (Number(amount) || 0)).toFixed(2)) }, [amount, limit == null])
   const [wallet, setWallet] = useState<{ wallet: WalletClient; address: Address }>()
   const [subaccountId, setSubaccountId] = useState<number>()
@@ -361,7 +370,13 @@ export default function App() {
 
       <div className={`card ${stance}`}>
         <div className="qty">
-          <Toggle value={amount} options={SIZES.includes(amount) ? SIZE_OPTIONS : [[amount, `${amount} contracts`], ...SIZE_OPTIONS]} onChange={setAmount} />
+          <button onClick={() => setAmount(ladder(amount, -1))} aria-label="fewer">−</button>
+          {fine
+            ? <input type="text" inputMode="decimal" autoFocus value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))}
+                onBlur={() => setFine(false)} onKeyDown={(e) => e.key === 'Enter' && setFine(false)} style={{ width: `${Math.max(1, amount.length) + 1}ch` }} aria-label="contracts" />
+            : <button className="n" onPointerDown={holdStart} onPointerUp={holdEnd} onPointerLeave={holdEnd} onPointerCancel={holdEnd} onContextMenu={(e) => e.preventDefault()} title="Hold to type an exact amount">{amount}</button>}
+          <button onClick={() => setAmount(ladder(amount, 1))} aria-label="more">+</button>
+          <span>contract{n === 1 ? '' : 's'}</span>
         </div>
         <button className="main" disabled={busy || !px} onClick={() => go()}>
           <b>{stance === 'do' ? 'Pay' : 'Receive'} {px ? usd(px) : <i className="ghost" style={{ width: '4em' }} />}</b>
