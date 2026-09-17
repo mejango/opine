@@ -5,11 +5,11 @@ body { margin: 0; background: var(--bg); color: var(--fg); font: 18px/1.5 system
 main { max-width: 1100px; margin: 0 auto; padding: 48px 16px; }
 h1 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin: 0 0 32px; }
 .sentence { font-size: clamp(40px, 8vw, 96px); line-height: 1.2; font-weight: 600; margin: 0 0 40px; }
-.tog { position: relative; display: inline-block; border-bottom: 3px solid currentColor; cursor: pointer; white-space: nowrap; font: inherit; color: inherit; background: none; border-top: 0; border-left: 0; border-right: 0; padding: 0; margin: 0; }
-button.tog:focus-visible { outline: none; border-bottom-color: var(--yes); }
+.tog { position: relative; display: inline-block; white-space: nowrap; }
+.tog button { font: inherit; color: inherit; background: none; border: 0; border-bottom: 3px solid currentColor; padding: 0; margin: 0; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+.tog button:focus-visible { outline: none; border-bottom-color: var(--yes); }
 .tog.do { color: var(--yes); } .tog.dont { color: var(--no); }
-.tog select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; font: inherit; }
-.tog:has(select:focus-visible) { border-bottom-color: var(--yes); }
+.tog select { position: absolute; inset: 0; width: 100%; opacity: 0; pointer-events: none; font: inherit; }
 .card { display: inline-block; margin-bottom: 8px; }
 .card .main { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: inherit; cursor: pointer; text-align: left; min-width: 180px; }
 .card .main:hover:not(:disabled) { background: color-mix(in srgb, currentColor 5%, transparent); }

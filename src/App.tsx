@@ -6,17 +6,34 @@ import * as d from './derive'
 
 type Stage = 'browsing' | 'noAccount' | 'ready'
 
-/** A word in the sentence that opens a native dropdown: underlined label with an invisible <select> on top. */
+/** A word in the sentence. Click cycles to the next option; press and hold opens the native picker. */
 function Toggle({ value, options, onChange, className }: { value: string; options: [string, string][]; onChange: (v: string) => void; className?: string }) {
+  const sel = useRef<HTMLSelectElement>(null)
+  const hold = useRef<{ timer: number; fired: boolean }>()
   const label = options.find(([v]) => v === value)?.[1] ?? value
-  if (options.length === 2) { // binary: a click flips it, no menu
-    const other = options.find(([v]) => v !== value)![0]
-    return <button type="button" className={`tog ${className ?? ''}`} onClick={() => onChange(other)}>{label}</button>
+  const cycle = () => onChange(options[(options.findIndex(([v]) => v === value) + 1) % options.length][0])
+  const down = () => {
+    const h = { timer: 0, fired: false }
+    h.timer = window.setTimeout(() => {
+      h.fired = true
+      const el = sel.current as any
+      if (el?.showPicker) el.showPicker() // ponytail: older browsers just cycle
+      else cycle()
+    }, 400)
+    hold.current = h
+  }
+  const up = () => {
+    if (!hold.current) return
+    clearTimeout(hold.current.timer)
+    if (!hold.current.fired) cycle()
+    hold.current = undefined
   }
   return (
     <span className={`tog ${className ?? ''}`}>
-      {label}
-      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
+      <button type="button" onPointerDown={down} onPointerUp={up} onPointerLeave={up} onPointerCancel={up} onContextMenu={(e) => e.preventDefault()}>
+        {label}
+      </button>
+      <select ref={sel} value={value} onChange={(e) => onChange(e.target.value)} aria-label={label} tabIndex={-1}>
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>
     </span>
