@@ -139,7 +139,8 @@ export default function App() {
   ] : [])
   const [loadError, setLoadError] = useState<string>()
   // The modal: what the click is doing right now.
-  const [step, setStep] = useState<{ kind: 'review' | 'connecting' | 'deposit' | 'signing' | 'placing' | 'done' | 'error'; text?: string }>()
+  const [step, setStep] = useState<{ kind: 'review' | 'connecting' | 'deposit' | 'fund' | 'signing' | 'placing' | 'done' | 'error'; text?: string }>()
+  const [funding, setFunding] = useState<{ have: number; need: number; floor: number }>() // balance vs what the order wants
   const privy = usePrivy()
   const { wallets: privyWallets } = useWallets()
   const { login } = useLogin()
@@ -154,6 +155,8 @@ export default function App() {
   const who = useWho(feed.map((t) => t.wallet))
   const copying = useRef(false) // a copied opine opens the modal as soon as its price lands
   const lastOverride = useRef<{ instrument: string; direction: 'buy' | 'sell'; amount: number }>() // the position action under review, if any
+  const skipFunding = useRef(false) // "continue with what I have"
+
 
   // Recent opines: the public option tape, every 15 s.
   useEffect(() => {
@@ -223,6 +226,13 @@ export default function App() {
     const id = setInterval(poll, 10_000)
     return () => clearInterval(id)
   }, [step?.kind, wallet])
+  // Funding: watch the balance until it covers the order.
+  useEffect(() => {
+    if (step?.kind !== 'fund' || subaccountId == null) return
+    const poll = () => d.usdcBalance(subaccountId).then((have) => setFunding((f) => (f ? { ...f, have } : f))).catch(() => {})
+    const id = setInterval(poll, 10_000)
+    return () => clearInterval(id)
+  }, [step?.kind, subaccountId])
 
   const refreshPositions = async (c: DeriveClient, id: number) => {
     const r: any = await c.subaccounts.getPositions(id)
@@ -313,6 +323,19 @@ export default function App() {
     try {
       const acct = await connect(() => go(override, true))
       if (!acct) return
+      // Enough USDC behind it? Sells need the chosen buffer; buys need the premium.
+      const each = o.limit ?? o.price
+      const want = o.direction === 'sell' ? (buffer ?? collateral ?? 0) : each * o.amount * 1.02
+      const floor = o.direction === 'sell' ? (collateral ?? 0) : each * o.amount
+      const have = await d.usdcBalance(acct.id)
+      if (have < want && !(skipFunding.current && have >= floor)) {
+        skipFunding.current = false
+        setFunding({ have, need: want, floor })
+        setDepositAddr(await d.depositAddress(acct.w.address, acct.id))
+        setStep({ kind: 'fund' })
+        return
+      }
+      skipFunding.current = false
       const c = await ensureTrader(acct.w)
       setStep({ kind: 'placing' })
       const i = override ? menu.byName.get(o.instrument) : inst
@@ -353,7 +376,7 @@ export default function App() {
           <p className="sentence ghost" aria-busy="true" aria-label="Loading markets">
             I <i style={{ width: '1.4em' }} /> think <i style={{ width: '2.3em' }} /> will be <i style={{ width: '3.2em' }} /> <i style={{ width: '3.6em' }} /> by <i style={{ width: '7.2em' }} />.
           </p>
-          <div className="card ghost"><div className="qty"><i style={{ width: '3em', height: '1em' }} /></div><i className="main" /></div>
+          <div className="card ghost"><div className="qty"><i style={{ width: '4em', height: '14px' }} /></div><i className="main" /></div>
         </>
       )}
     </main>
@@ -454,9 +477,22 @@ export default function App() {
         {step?.kind === 'placing' && <p>Placing…</p>}
         {step?.kind === 'done' && <p className="ok">{step.text}</p>}
         {step?.kind === 'error' && <p className="err">{step.text}</p>}
+        {step?.kind === 'fund' && funding && order && (
+          <div>
+            <p>You have <b>${funding.have.toLocaleString('en-US', { maximumFractionDigits: 2 })}</b> of USDC on Derive; this needs <b>${Math.ceil(funding.need).toLocaleString()}</b>{order.direction === 'sell' ? ' behind it' : ''}.
+              Send at least <b>${Math.ceil(funding.need - funding.have).toLocaleString()}</b> more USDC on <b>{d.CHAIN_LABEL}</b> to:</p>
+            <p><code>{depositAddr?.address}</code></p>
+            <p>Only this USDC: <code>{depositAddr?.token}</code>. Your balance here updates as it lands.</p>
+            {funding.have >= funding.need
+              ? <button onClick={() => go(lastOverride.current, true)}>Funded — continue</button>
+              : funding.have >= funding.floor && order.direction === 'sell'
+                ? <button onClick={() => { skipFunding.current = true; go(lastOverride.current, true) }}>Continue with ${funding.have.toLocaleString('en-US', { maximumFractionDigits: 2 })} behind it instead</button>
+                : null}
+          </div>
+        )}
         {step?.kind === 'deposit' && (
           <div>
-            <p>No Derive account yet. Send USDC on <b>{d.CHAIN_LABEL}</b> to open one:</p>
+            <p>No Derive account yet. Send USDC on <b>{d.CHAIN_LABEL}</b> to open one{order ? <> — at least <b>${Math.ceil(order.direction === 'sell' ? (buffer ?? collateral ?? 0) : (order.limit ?? order.price) * order.amount * 1.02).toLocaleString()}</b> for this</> : ''}:</p>
             <p><code>{depositAddr?.address}</code></p>
             <p>Only this USDC, only on {d.CHAIN_LABEL}: <code>{depositAddr?.token}</code>. Credits in a minute or two.</p>
             {pending.map((p, i) => <p key={i}>Deposit of {(Number(p.amount) / 1e6).toFixed(2)} USDC: <b>{p.status}</b></p>)}

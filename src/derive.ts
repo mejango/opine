@@ -74,14 +74,22 @@ export const listSubaccounts = (address: Address) =>
   publicClient.send('private/get_subaccounts', { wallet: address }).then((r: any) => r.subaccount_ids as number[])
 
 // ---- onboarding ---------------------------------------------------------
-export async function depositAddress(address: Address) {
+/** USDC sitting in a subaccount (the public client must be logged in as its owner). */
+export async function usdcBalance(subaccountId: number) {
+  const r: any = await publicClient.send('private/get_subaccount', { subaccount_id: subaccountId })
+  return Number(r.collaterals?.find((c: any) => c.asset_name === 'USDC')?.amount ?? 0)
+}
+
+/** Where to send USDC: into an existing subaccount, or (no id) to open a new one. */
+export async function depositAddress(address: Address, subaccountId?: number) {
   await ready
   // ponytail: SDK's getRiskUniverses() sends null params, which the WS transport rejects
   const universes: any[] = await publicClient.send('public/get_risk_universes', {} as any)
   const manager = universes.flatMap((u: any) => u.managers)
     .find((m: any) => m.instruments.includes('ETH-OPTION') && m.collaterals.some((c: any) => c.name === 'USDC'))
   if (!manager) throw new Error('No USDC/ETH-option manager on this network')
-  const r = await publicClient.deposits.depositAddress.register({ wallet: address, managerId: manager.manager_id, depositType: 'instant' })
+  const r = await publicClient.deposits.depositAddress.register(
+    subaccountId != null ? { wallet: address, subaccountId, depositType: 'instant' } : { wallet: address, managerId: manager.manager_id, depositType: 'instant' })
   // ponytail: the SDK's bundled USDC address can go stale after a testnet reset — trust the exchange's answer
   const token = manager.collaterals.find((c: any) => c.name === 'USDC').erc20.underlying_erc20 as string
   return { address: r.deposit_address as string, token }
