@@ -7,6 +7,9 @@ import { buildMenu, expiryLabel, instrumentFor, parseInstrument, pick, resolve, 
 import * as d from './derive'
 import { payoff, stats, type Leg } from './payoff'
 
+const SIZES = ['0.1', '0.25', '0.5', '1', '2', '5', '10', '25', '50', '100']
+const SIZE_OPTIONS: [string, string][] = SIZES.map((v) => [v, `${v} contract${v === '1' ? '' : 's'}`])
+
 /** A word in the sentence. Click cycles to the next option; press and hold opens the native picker. */
 function Toggle({ value, options, onChange, className }: { value: string; options: [string, string][]; onChange: (v: string) => void; className?: string }) {
   const sel = useRef<HTMLSelectElement>(null)
@@ -338,8 +341,6 @@ export default function App() {
   const quote = ticker ? Number(stance === 'do' ? ticker.a : ticker.b) : undefined
   const px = limit ? Number(limit) || undefined : quote
   const n = Number(amount) || 0
-  const minAmt = Number(inst?.minimum_amount ?? 0.1), stepAmt = Number(inst?.amount_step ?? 0.01)
-  const step_ = (by: number) => setAmount(String(Math.max(minAmt, Math.round((n + by) * 100) / 100)))
   const usd = (x?: number) => (x ? `$${(x * n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—')
   const busy = step && !['done', 'error', 'deposit'].includes(step.kind)
 
@@ -360,11 +361,7 @@ export default function App() {
 
       <div className={`card ${stance}`}>
         <div className="qty">
-          <button onClick={() => step_(-(n >= 1 ? 1 : 0.1))} aria-label="fewer">−</button>
-          <input type="text" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))} style={{ width: `${Math.max(1, amount.length) + 1}ch` }} aria-label="contracts" />
-          <button onClick={() => step_(n >= 1 ? 1 : 0.1)} aria-label="more">+</button>
-          <span>contract{n === 1 ? '' : 's'}</span>
-          <span className="picks">{[0.1, 1, 10].map((v) => <button key={v} className={n === v ? 'on' : ''} onClick={() => setAmount(String(v))}>{v}</button>)}</span>
+          <Toggle value={amount} options={SIZES.includes(amount) ? SIZE_OPTIONS : [[amount, `${amount} contracts`], ...SIZE_OPTIONS]} onChange={setAmount} />
         </div>
         <button className="main" disabled={busy || !px} onClick={() => go()}>
           <b>{stance === 'do' ? 'Pay' : 'Receive'} {px ? usd(px) : <i className="ghost" style={{ width: '4em' }} />}</b>
