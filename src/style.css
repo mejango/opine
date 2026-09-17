@@ -31,9 +31,9 @@ h1 { font-size: 26px; letter-spacing: .12em; text-transform: uppercase; color: v
 .card .main b { display: block; font-size: 32px; }
 .card .main b { color: #111; }
 .qty { display: flex; align-items: center; gap: 2px; padding: 0 0 6px 2px; color: var(--muted); font-size: 12px; }
-.qty button { font: inherit; font-size: 14px; line-height: 1; width: 20px; height: 20px; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.qty button { font: inherit; font-size: 12px; line-height: 1; padding: 0 5px; height: 20px; border: 0; background: transparent; color: inherit; cursor: pointer; font-variant-numeric: tabular-nums; }
 .qty button:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
-.qty input { width: 2em; font: inherit; text-align: center; padding: 0; border: 0; background: transparent; color: var(--fg); -moz-appearance: textfield; }
+.qty input { width: 2.6em; margin: 0 4px; font: inherit; text-align: center; padding: 0; border: 0; background: transparent; color: var(--fg); -moz-appearance: textfield; }
 .qty input::-webkit-outer-spin-button, .qty input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .row button, dialog { position: fixed; background: var(--bg); color: var(--fg); border: 1px solid var(--line); padding: 24px; max-width: 460px; width: calc(100% - 32px); font-size: 16px; }
 dialog::backdrop { background: rgba(0,0,0,.5); }

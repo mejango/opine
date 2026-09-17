@@ -98,7 +98,7 @@ export default function App() {
   const [s, setS] = useState<Sentence>()
   const [stance, setStance] = useState<'do' | 'dont'>('do') // do = buy the option, don't = sell it
   const [ticker, setTicker] = useState<Ticker>()
-  const [amount, setAmount] = useState('1')
+  const [amount, setAmount] = useState('0.1')
   const [limit, setLimit] = useState<string>() // set = user named a price → GTC limit instead of market
   const [wallet, setWallet] = useState<{ wallet: WalletClient; address: Address }>()
   const [subaccountId, setSubaccountId] = useState<number>()
@@ -161,7 +161,7 @@ export default function App() {
     const q = new URLSearchParams()
     q.set('i', inst.instrument_name)
     if (stance === 'dont') q.set('s', 'dont')
-    if (amount !== '1') q.set('n', amount)
+    if (amount !== '0.1') q.set('n', amount)
     if (limit) q.set('p', limit)
     if (demo) q.set('demo', '')
     history.replaceState(null, '', `?${q.toString().replace(/=(&|$)/g, '$1')}`)
@@ -328,7 +328,7 @@ export default function App() {
   const px = limit ? Number(limit) || undefined : quote
   const n = Number(amount) || 0
   const minAmt = Number(inst?.minimum_amount ?? 0.1), stepAmt = Number(inst?.amount_step ?? 0.01)
-  const step_ = (dir: 1 | -1) => setAmount(String(Math.max(minAmt, Math.round((n + dir) * 100) / 100)))
+  const step_ = (by: number) => setAmount(String(Math.max(minAmt, Math.round((n + by) * 100) / 100)))
   const usd = (x?: number) => (x ? `$${(x * n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—')
   const busy = step && !['done', 'error', 'deposit'].includes(step.kind)
 
@@ -349,9 +349,13 @@ export default function App() {
 
       <div className={`card ${stance}`}>
         <div className="qty">
-          <button onClick={() => step_(-1)} aria-label="fewer">−</button>
-          <input type="number" min={minAmt} step={stepAmt} value={amount} onChange={(e) => setAmount(e.target.value)} />
-          <button onClick={() => step_(1)} aria-label="more">+</button>
+          <button onClick={() => step_(-10)}>−10</button>
+          <button onClick={() => step_(-1)}>−1</button>
+          <button onClick={() => step_(-0.1)}>−.1</button>
+          <input type="number" min={minAmt} step={stepAmt} value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="contracts" />
+          <button onClick={() => step_(0.1)}>+.1</button>
+          <button onClick={() => step_(1)}>+1</button>
+          <button onClick={() => step_(10)}>+10</button>
         </div>
         <button className="main" disabled={busy || !px} onClick={() => go()}>
           <b>{limit ? 'Offer' : stance === 'do' ? 'Pay' : 'Receive'} {px ? usd(px) : <i className="ghost" style={{ width: '4em' }} />}</b>
