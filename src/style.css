@@ -25,7 +25,7 @@ h1 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: va
 .row button, .positions { list-style: none; padding: 0; margin: 0; }
 .positions li { padding: 12px 0; border-top: 1px solid var(--line); }
 .positions small { color: var(--muted); display: block; }
-dialog { background: var(--bg); color: var(--fg); border: 1px solid var(--line); padding: 24px; max-width: 420px; width: calc(100% - 32px); font-size: 16px; }
+dialog { background: var(--bg); color: var(--fg); border: 1px solid var(--line); padding: 24px; max-width: 460px; width: calc(100% - 32px); font-size: 16px; }
 dialog::backdrop { background: rgba(0,0,0,.5); }
 dialog p { margin: 0 0 12px; }
 dialog .order b { display: block; } dialog .order small { color: var(--muted); font-size: 13px; }
@@ -49,3 +49,17 @@ dialog form { margin-top: 12px; text-align: right; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .ghost i, i.ghost { animation: none; } }
 .err { color: var(--no); }
+/* Payoff chart */
+.payoff { margin: 4px 0 16px; }
+.pstats { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.pstats b { display: block; color: var(--fg); font-size: 15px; }
+.pstats .loss { color: var(--no); } .pstats .gain { color: var(--yes); }
+.payoff svg { width: 100%; height: auto; display: block; touch-action: none; }
+.payoff polygon.gain { fill: var(--yes); opacity: .15; } .payoff polygon.loss { fill: var(--no); opacity: .15; }
+.payoff .line { fill: none; stroke: var(--fg); stroke-width: 2; stroke-linejoin: round; }
+.payoff .axis { stroke: var(--line); stroke-width: 1; }
+.payoff .spot { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+.payoff .cross { stroke: var(--teal); stroke-width: 1; }
+.payoff .dot { fill: var(--teal); stroke: var(--bg); stroke-width: 2; }
+.payoff .tick { fill: var(--muted); font-size: 11px; }
+.payoff .tip { fill: var(--fg); font-size: 12px; font-weight: 600; }

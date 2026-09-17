@@ -3,6 +3,7 @@ import type { DeriveClient } from '@derivexyz/derive-ts'
 import type { Address, WalletClient } from 'viem'
 import { buildMenu, expiryLabel, instrumentFor, pick, resolve, type Instrument, type Menu, type Sentence, type Ticker } from './sentence'
 import * as d from './derive'
+import { payoff, stats, type Leg } from './payoff'
 
 /** A word in the sentence. Click cycles to the next option; press and hold opens the native picker. */
 function Toggle({ value, options, onChange, className }: { value: string; options: [string, string][]; onChange: (v: string) => void; className?: string }) {
@@ -35,6 +36,58 @@ function Toggle({ value, options, onChange, className }: { value: string; option
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>
     </span>
+  )
+}
+
+
+const money = (x: number) => (x === Infinity ? 'Uncapped' : `$${x.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+const kfmt = (x: number) => (x >= 1000 ? `$${(x / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })}k` : `$${x.toLocaleString('en-US', { maximumFractionDigits: 2 })}`)
+
+/** Payoff at expiry: headline figures plus a hoverable line over ±40 % of strike. */
+function Payoff({ leg, spot, currency }: { leg: Leg; spot?: number; currency: string }) {
+  const [hover, setHover] = useState<number>()
+  const st = stats(leg)
+  const W = 360, H = 180, L = 46, R = 8, T = 10, B = 22
+  const lo = leg.strike * 0.6, hi = leg.strike * 1.4
+  const ys = [payoff(leg, lo), payoff(leg, hi), payoff(leg, leg.strike), 0]
+  const yMin = Math.min(...ys), yMax = Math.max(...ys), pad = (yMax - yMin) * 0.15 || 1
+  const x = (p: number) => L + ((p - lo) / (hi - lo)) * (W - L - R)
+  const y = (v: number) => T + ((yMax + pad - v) / (yMax - yMin + 2 * pad)) * (H - T - B)
+  const pts = [lo, leg.strike, hi].map((p) => `${x(p)},${y(payoff(leg, p))}`).join(' ')
+  const zero = y(0)
+  const ticks = [0.75, 1, 1.25].map((m) => leg.strike * m)
+  const yTicks = [yMin, 0, yMax].filter((v, i, a) => a.indexOf(v) === i)
+  const hp = hover != null ? lo + (hover / (W - L - R)) * (hi - lo) : undefined
+  return (
+    <div className="payoff">
+      <div className="pstats">
+        <span>Max loss<b className="loss">{money(st.maxLoss)}</b></span>
+        <span>Break even<b>{money(st.breakEven)}</b></span>
+        <span>Max profit<b className="gain">{money(st.maxProfit)}</b></span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Profit or loss at expiry by price"
+        onPointerMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); setHover(Math.max(0, Math.min(W - L - R, ((e.clientX - r.left) / r.width) * W - L))) }}
+        onPointerLeave={() => setHover(undefined)}>
+        <defs><clipPath id="above"><rect x={L} y={0} width={W - L - R} height={zero} /></clipPath><clipPath id="below"><rect x={L} y={zero} width={W - L - R} height={H - zero} /></clipPath></defs>
+        <polygon points={`${x(lo)},${zero} ${pts} ${x(hi)},${zero}`} className="gain" clipPath="url(#above)" />
+        <polygon points={`${x(lo)},${zero} ${pts} ${x(hi)},${zero}`} className="loss" clipPath="url(#below)" />
+        <line x1={L} x2={W - R} y1={zero} y2={zero} className="axis" />
+        {yTicks.map((v) => <text key={v} x={L - 6} y={y(v)} className="tick" textAnchor="end" dominantBaseline="middle">{v === 0 ? '$0' : (v < 0 ? '−' : '') + kfmt(Math.abs(v))}</text>)}
+        {ticks.map((p) => <text key={p} x={x(p)} y={H - 6} className="tick" textAnchor="middle">{kfmt(p)}</text>)}
+        {spot && spot > lo && spot < hi && <>
+          <line x1={x(spot)} x2={x(spot)} y1={T} y2={H - B} className="spot" />
+          <text x={x(spot)} y={T + 8} className="tick" textAnchor={spot > leg.strike ? 'end' : 'start'} dx={spot > leg.strike ? -4 : 4}>{currency} {money(spot)}</text>
+        </>}
+        <polyline points={pts} className="line" />
+        {hp != null && <>
+          <line x1={x(hp)} x2={x(hp)} y1={T} y2={H - B} className="cross" />
+          <circle cx={x(hp)} cy={y(payoff(leg, hp))} r={4} className="dot" />
+          <text x={x(hp)} y={H - B - 6} className="tip" textAnchor={hp > (lo + hi) / 2 ? 'end' : 'start'} dx={hp > (lo + hi) / 2 ? -6 : 6}>
+            {currency} at {kfmt(hp)} → {payoff(leg, hp) < 0 ? '−' : '+'}{money(Math.abs(payoff(leg, hp)))}
+          </text>
+        </>}
+      </svg>
+    </div>
   )
 }
 
@@ -215,6 +268,10 @@ export default function App() {
               {wallet ? ` from ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''}{subaccountId != null ? ` (subaccount ${subaccountId})` : ''}.
             </small>
           </p>
+        )}
+        {order && (
+          <Payoff currency={order.sentence.currency} spot={ticker?.I ? Number(ticker.I) : undefined}
+            leg={{ type: order.sentence.side === 'above' ? 'C' : 'P', strike: order.sentence.strike, premium: order.price, n: order.amount, long: order.direction === 'buy' }} />
         )}
         {step?.kind === 'connecting' && <p>Connecting wallet…</p>}
         {step?.kind === 'choose' && (

@@ -17,7 +17,7 @@ export interface Sentence {
   side: 'above' | 'below'
 }
 
-export type Ticker = { a: string; b: string } // best ask / best bid, as the API sends them
+export type Ticker = { a: string; b: string; I?: string } // best ask / best bid / index price, as the API sends them
 
 export function buildMenu(instruments: Instrument[]) {
   const live = instruments.filter((i) => i.is_active)
