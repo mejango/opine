@@ -1,5 +1,5 @@
-:root { color-scheme: light dark; --fg: #111; --bg: #fafafa; --muted: #777; --yes: #1a7f37; --no: #b42318; --line: #ddd; }
-@media (prefers-color-scheme: dark) { :root { --fg: #eee; --bg: #111; --muted: #999; --line: #333; } }
+:root { color-scheme: light dark; --fg: #111; --bg: #fafafa; --muted: #777; --yes: #1a7f37; --no: #b42318; --teal: #0e7c86; --line: #ddd; }
+@media (prefers-color-scheme: dark) { :root { --fg: #eee; --bg: #111; --muted: #999; --line: #333; --teal: #2dd4bf; } }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 18px/1.5 system-ui, sans-serif; }
 main { max-width: 1100px; margin: 0 auto; padding: 48px 16px; }
@@ -16,7 +16,7 @@ h1 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: va
 .card .main:hover:not(:disabled) { background: color-mix(in srgb, currentColor 5%, transparent); }
 .card .main:disabled { opacity: .5; cursor: default; }
 .card .main b { display: block; font-size: 20px; }
-.card.do .main b { color: var(--yes); } .card.dont .main b { color: var(--no); }
+.card .main b { color: var(--teal); }
 .qty { display: flex; align-items: center; gap: 2px; padding: 0 0 6px 2px; color: var(--muted); font-size: 12px; }
 .qty button { font: inherit; font-size: 14px; line-height: 1; width: 20px; height: 20px; border: 0; border-radius: 4px; background: transparent; color: inherit; cursor: pointer; }
 .qty button:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
