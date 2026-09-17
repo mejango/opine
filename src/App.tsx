@@ -95,7 +95,7 @@ function Payoff({ leg, spot, currency, liq }: { leg: Leg; spot?: number; currenc
         <polyline points={pts} className="line" />
         {spot && spot > lo && spot < hi && hp == null && <>
           <circle cx={x(spot)} cy={y(payoff(leg, spot))} r={4} className="spotdot" />
-          <text x={x(spot)} y={y(payoff(leg, spot))} dy={payoff(leg, spot) >= 0 ? -10 : 18} className="tip" textAnchor={spot > leg.strike ? 'end' : 'start'} dx={spot > leg.strike ? -8 : 8}>
+          <text x={x(spot)} y={y(payoff(leg, spot))} dy={y(payoff(leg, spot)) > (T + H - B) / 2 ? -10 : 18} className="tip" textAnchor={spot > leg.strike ? 'end' : 'start'} dx={spot > leg.strike ? -8 : 8}>
             {payoff(leg, spot) < 0 ? '−' : '+'}{money(Math.abs(payoff(leg, spot)))} if it stayed here
           </text>
         </>}
@@ -435,10 +435,6 @@ export default function App() {
         {order && (
           <p className="order">
             <b>You {order.stance === 'do' ? 'think' : "don't think"} {order.sentence.currency} will be {order.sentence.side} ${order.sentence.strike.toLocaleString()}<br />by {expiryLabel(order.sentence.expiry)}.</b>
-            <small>
-              {order.limit ? (order.direction === 'buy' ? 'Offering to buy' : 'Offering to sell') : order.direction === 'buy' ? 'Buying' : 'Selling'} {order.amount} {order.sentence.currency} {order.sentence.side === 'above' ? 'call' : 'put'}{order.amount === 1 ? '' : 's'} at ${(order.limit ?? order.price).toFixed(2)} each{order.limit ? ' (limit)' : ''} on Derive {d.NETWORK}
-              {wallet ? ` from ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''}{subaccountId != null ? ` (subaccount ${subaccountId})` : ''}.
-            </small>
             {order.direction === 'sell' && (
               <small className="collateral">
                 You receive ${((order.limit ?? order.price) * order.amount).toFixed(2)} up front. You choose how much USDC to keep behind it as a liquidation buffer
@@ -454,6 +450,12 @@ export default function App() {
         {order && (
           <Payoff currency={order.sentence.currency} spot={ticker?.I ? Number(ticker.I) : undefined} leg={leg(order)}
             liq={order.direction === 'sell' && collateral != null && buffer != null ? liquidationPrice(leg(order), buffer, collateral) : undefined} />
+        )}
+        {order && (
+          <p className="detail">
+            {order.limit ? (order.direction === 'buy' ? 'Offering to buy' : 'Offering to sell') : order.direction === 'buy' ? 'Buying' : 'Selling'} {order.amount} {order.sentence.currency} {order.sentence.side === 'above' ? 'call' : 'put'}{order.amount === 1 ? '' : 's'} at ${(order.limit ?? order.price).toFixed(2)} each{order.limit ? ' (limit)' : ''} on Derive {d.NETWORK}
+            {wallet ? ` from ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''}{subaccountId != null ? ` (subaccount ${subaccountId})` : ''}.
+          </p>
         )}
         {step?.kind === 'review' && order && (
           <button className="confirm" onClick={() => go(lastOverride.current, true)}>
