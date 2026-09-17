@@ -283,7 +283,7 @@ export default function App() {
 
   if (!menu || !s) return (
     <main>
-      <h1><span className="logo">⌥</span> Opine<small>On <a href="https://derive.xyz" target="_blank" rel="noreferrer">Derive</a></small></h1>
+      <h1><span className="logo">⌥</span><span>Opine<small>on <a href="https://derive.xyz" target="_blank" rel="noreferrer">Derive</a></small></span></h1>
       {loadError ? <p className="err">{loadError}</p> : (
         <>
           <p className="sentence ghost" aria-busy="true" aria-label="Loading markets">
@@ -309,7 +309,7 @@ export default function App() {
 
   return (
     <main>
-      <h1><span className="logo">⌥</span> Opine<small>On <a href="https://derive.xyz" target="_blank" rel="noreferrer">Derive</a></small></h1>
+      <h1><span className="logo">⌥</span><span>Opine<small>on <a href="https://derive.xyz" target="_blank" rel="noreferrer">Derive</a></small></span></h1>
       <p className="sentence">
         I{' '}
         <Toggle value={stance} options={[['do', 'do'], ['dont', "don't"]]} onChange={(v) => setStance(v as 'do' | 'dont')} className={stance} />{' '}
