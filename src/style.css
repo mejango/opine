@@ -110,5 +110,5 @@ dialog form.x button:hover:not(:disabled), dialog form.x button:focus-visible { 
 .mine li b { position: absolute; top: 14px; right: 0; font-size: 16px; font-variant-numeric: tabular-nums; }
 .mine .gain { color: var(--yes); } .mine .loss { color: var(--no); }
 .mine footer { display: flex; gap: 16px; margin-top: 8px; }
-.mine footer button.text { font: inherit; font-size: 14px; border: 0; padding: 0; background: none; color: var(--teal); cursor: pointer; }
-.mine footer button.text:hover { text-decoration: underline; }
+.mine footer button.text { font: inherit; font-size: 12px; border: 0; padding: 0; background: none; color: var(--muted); cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--muted) 40%, transparent); text-underline-offset: 3px; }
+.mine footer button.text:hover { color: var(--fg); text-decoration-color: currentColor; }
