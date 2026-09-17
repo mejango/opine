@@ -124,7 +124,7 @@ function Depth({ book, instrument, group }: { book?: d.Book; instrument: string;
       <h2>Market depth</h2>
       <ol className="ladder">
         {grid(hiBid, -1).reverse().map((p) => row(p, 'bid'))}
-        <li className="mid">{bestBid != null && bestAsk != null ? `mid $${((bestBid + bestAsk) / 2).toFixed(2)} · spread $${(bestAsk - bestBid).toFixed(2)}` : 'one-sided book'}</li>
+        <li className="mid">{bestBid != null && bestAsk != null ? `mid $${((bestBid + bestAsk) / 2).toFixed(2)}, spread $${(bestAsk - bestBid).toFixed(2)}` : 'one-sided book'}</li>
         {grid(loAsk, 1).map((p) => row(p, 'ask'))}
       </ol>
     </div>
@@ -407,7 +407,7 @@ export default function App() {
             return (
               <li key={p.instrument_name}>
                 You think {cur} will {long ? '' : 'not '}be {side} ${Number(strike).toLocaleString()} by {when}.
-                <small>{Math.abs(Number(p.amount))} contracts · mark ${Number(p.mark_price).toFixed(2)} · {p.instrument_name}</small>
+                <small>{Math.abs(Number(p.amount))} contracts, mark ${Number(p.mark_price).toFixed(2)}, {p.instrument_name}</small>
               </li>
             )
           })}
