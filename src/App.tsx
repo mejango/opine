@@ -358,13 +358,11 @@ export default function App() {
 
       <div className={`card ${stance}`}>
         <div className="qty">
-          <button onClick={() => step_(-10)}>−10</button>
-          <button onClick={() => step_(-1)}>−1</button>
-          <button onClick={() => step_(-0.1)}>−.1</button>
-          <input type="number" min={minAmt} step={stepAmt} value={amount} onChange={(e) => setAmount(e.target.value)} aria-label="contracts" />
-          <button onClick={() => step_(0.1)}>+.1</button>
-          <button onClick={() => step_(1)}>+1</button>
-          <button onClick={() => step_(10)}>+10</button>
+          <button onClick={() => step_(-(n >= 1 ? 1 : 0.1))} aria-label="fewer">−</button>
+          <input type="text" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))} style={{ width: `${Math.max(1, amount.length) + 1}ch` }} aria-label="contracts" />
+          <button onClick={() => step_(n >= 1 ? 1 : 0.1)} aria-label="more">+</button>
+          <span>contract{n === 1 ? '' : 's'}</span>
+          <span className="picks">{[0.1, 1, 10].map((v) => <button key={v} className={n === v ? 'on' : ''} onClick={() => setAmount(String(v))}>{v}</button>)}</span>
         </div>
         <button className="main" disabled={busy || !px} onClick={() => go()}>
           <b>{stance === 'do' ? 'Pay' : 'Receive'} {px ? usd(px) : <i className="ghost" style={{ width: '4em' }} />}</b>
