@@ -332,11 +332,15 @@ export default function App() {
               const ago = Math.max(1, Math.round((Date.now() - t.timestamp) / 60000))
               return (
                 <li key={t.trade_id}>
-                  <span>
-                    <b>{t.wallet.slice(0, 6)}…{t.wallet.slice(-4)}</b> {t.direction === 'buy' ? 'does' : "doesn't"} think {p.currency} will be {p.side} ${p.strike.toLocaleString()} by {expiryLabel(p.expiry)}.
-                    <small>{Number(t.trade_amount)} contract{Number(t.trade_amount) === 1 ? '' : 's'} at ${Number(t.trade_price).toFixed(2)} · {ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.round(ago / 60)}h` : `${Math.round(ago / 1440)}d`} ago</small>
-                  </span>
-                  <button className="text" onClick={() => copy(t)}>Copy</button>
+                  <header>
+                    <b>{t.wallet.slice(0, 6)}…{t.wallet.slice(-4)}</b>
+                    <time dateTime={new Date(t.timestamp).toISOString()}>{ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.round(ago / 60)}h` : `${Math.round(ago / 1440)}d`} ago</time>
+                  </header>
+                  <p>{t.direction === 'buy' ? 'Does' : "Doesn't"} think {p.currency} will be {p.side} ${p.strike.toLocaleString()} by {expiryLabel(p.expiry)}.</p>
+                  <footer>
+                    <button className="text" onClick={() => copy(t)}>Copy</button>
+                    <small>{Number(t.trade_amount)} contract{Number(t.trade_amount) === 1 ? '' : 's'} at ${Number(t.trade_price).toFixed(2)}</small>
+                  </footer>
                 </li>
               )
             })}

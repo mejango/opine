@@ -64,11 +64,12 @@ dialog form { margin-top: 12px; text-align: right; }
 .payoff .tick { fill: var(--muted); font-size: 11px; }
 .payoff .tip { fill: var(--fg); font-size: 12px; font-weight: 600; }
 /* Feed */
-.feed { margin-top: 64px; }
+.feed { margin-top: 64px; max-width: 480px; }
 .feed h2 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
 .feed ul { list-style: none; padding: 0; margin: 0; }
-.feed li { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 16px; }
-.feed li b { font-weight: 600; font-family: ui-monospace, monospace; font-size: 14px; }
-.feed li small { display: block; color: var(--muted); font-size: 13px; }
-.feed button.text { font: inherit; font-size: 15px; padding: 6px 10px; border: 0; background: transparent; color: var(--teal); cursor: pointer; white-space: nowrap; }
-.feed button.text:hover, .feed button.text:focus-visible { background: color-mix(in srgb, currentColor 8%, transparent); outline: none; }
+.feed li { padding: 14px 0; border-top: 1px solid var(--line); }
+.feed header, .feed footer { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12px; }
+.feed header b { font-weight: 500; font-family: ui-monospace, monospace; }
+.feed li p { margin: 6px 0; font-size: 17px; font-weight: 500; }
+.feed button.text { font: inherit; font-size: 14px; padding: 4px 0; border: 0; background: transparent; color: var(--teal); cursor: pointer; }
+.feed button.text:hover, .feed button.text:focus-visible { text-decoration: underline; outline: none; }
