@@ -145,7 +145,19 @@ export default function App() {
     }
   }
 
-  if (!menu || !s) return <main><h1><span className="logo">⌥</span> Opine</h1><p>{loadError ?? 'Loading markets…'}</p></main>
+  if (!menu || !s) return (
+    <main>
+      <h1><span className="logo">⌥</span> Opine</h1>
+      {loadError ? <p className="err">{loadError}</p> : (
+        <>
+          <p className="sentence ghost" aria-busy="true" aria-label="Loading markets">
+            I <i style={{ width: '1.4em' }} /> think <i style={{ width: '2.3em' }} /> will be <i style={{ width: '3.2em' }} /> <i style={{ width: '3.6em' }} /> by <i style={{ width: '7.2em' }} />.
+          </p>
+          <div className="card ghost"><div className="qty"><i style={{ width: '3em', height: '1em' }} /></div><i className="main" /></div>
+        </>
+      )}
+    </main>
+  )
 
   const set = async (patch: Partial<Sentence>) => {
     if (patch.currency) patch.strike = await d.spot(patch.currency) // new coin, new price scale
@@ -180,7 +192,7 @@ export default function App() {
           <button onClick={() => step_(1)} aria-label="more">+</button>
         </div>
         <button className="main" disabled={busy || !px} onClick={go}>
-          <b>{stance === 'do' ? 'Pay' : 'Receive'} {usd(px)}</b>
+          <b>{stance === 'do' ? 'Pay' : 'Receive'} {px ? usd(px) : <i className="ghost" style={{ width: '4em' }} />}</b>
         </button>
       </div>
 

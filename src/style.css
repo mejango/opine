@@ -33,3 +33,11 @@ dialog code { font-size: 14px; word-break: break-all; user-select: all; }
 dialog .ok { color: var(--yes); } dialog .err { color: var(--no); white-space: pre-wrap; }
 dialog button { font: inherit; font-size: 15px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: inherit; cursor: pointer; }
 dialog form { margin-top: 12px; text-align: right; }
+/* Ghost loading: same layout, shimmering blanks. */
+.ghost i, i.ghost { display: inline-block; height: .8em; vertical-align: -.1em; border-radius: .15em; background: linear-gradient(90deg, var(--line) 25%, color-mix(in srgb, var(--line) 40%, var(--bg)) 50%, var(--line) 75%); background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+.sentence.ghost { color: var(--muted); }
+.sentence.ghost i { border-bottom: 3px solid var(--line); border-radius: .15em .15em 0 0; }
+.card.ghost .main { display: block; width: 8em; height: 2.9em; border-radius: 10px; background: linear-gradient(90deg, var(--line) 25%, color-mix(in srgb, var(--line) 40%, var(--bg)) 50%, var(--line) 75%); background-size: 200% 100%; }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .ghost i, i.ghost { animation: none; } }
+.err { color: var(--no); }
