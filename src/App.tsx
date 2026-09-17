@@ -91,6 +91,55 @@ function Payoff({ leg, spot, currency }: { leg: Leg; spot?: number; currency: st
   )
 }
 
+/** Cumulative depth: bids stepping down-left, asks stepping up-right, hover reads size at price. */
+function Depth({ book, instrument }: { book?: d.Book; instrument: string }) {
+  const [hx, setHx] = useState<number>()
+  const W = 480, H = 200, L = 8, R = 8, T = 10, B = 22
+  const side = (levels: [string, string][]) => {
+    let cum = 0
+    return levels.map(([p, a]) => ({ p: Number(p), cum: (cum += Number(a)) }))
+  }
+  const bids = book ? side(book.bids) : [], asks = book ? side(book.asks) : []
+  if (!bids.length && !asks.length) return <div className="depth"><h2>Market depth</h2><p className="muted">No resting orders on {instrument}.</p></div>
+  const lo = Math.min(...bids.map((b) => b.p), ...asks.map((a) => a.p)), hi = Math.max(...bids.map((b) => b.p), ...asks.map((a) => a.p))
+  const span = hi - lo || 1
+  const max = Math.max(...bids.map((b) => b.cum), ...asks.map((a) => a.cum), 1)
+  const x = (p: number) => L + ((p - (lo - span * 0.05)) / (span * 1.1)) * (W - L - R)
+  const y = (v: number) => T + (1 - v / max) * (H - T - B)
+  // step paths: bids run from best (right) outwards (left); asks from best (left) outwards (right)
+  const bidPts = bids.flatMap((b, i) => [`${x(b.p)},${y(i ? bids[i - 1].cum : 0)}`, `${x(b.p)},${y(b.cum)}`])
+  const askPts = asks.flatMap((a, i) => [`${x(a.p)},${y(i ? asks[i - 1].cum : 0)}`, `${x(a.p)},${y(a.cum)}`])
+  const bidArea = bids.length ? `${x(bids[0].p)},${y(0)} ${bidPts.join(' ')} ${x(lo - span * 0.05)},${y(bids[bids.length - 1].cum)} ${x(lo - span * 0.05)},${y(0)}` : ''
+  const askArea = asks.length ? `${x(asks[0].p)},${y(0)} ${askPts.join(' ')} ${x(hi + span * 0.05)},${y(asks[asks.length - 1].cum)} ${x(hi + span * 0.05)},${y(0)}` : ''
+  const hp = hx != null ? lo - span * 0.05 + (hx / (W - L - R)) * span * 1.1 : undefined
+  const at = hp != null ? (bids[0] && hp <= bids[0].p ? { side: 'bid', lv: bids.filter((b) => b.p >= hp).at(-1) } : { side: 'ask', lv: asks.filter((a) => a.p <= hp).at(-1) }) : undefined
+  const mid = bids[0] && asks[0] ? (bids[0].p + asks[0].p) / 2 : undefined
+  return (
+    <div className="depth">
+      <h2>Market depth</h2>
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Order book depth for ${instrument}`}
+        onPointerMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); setHx(Math.max(0, Math.min(W - L - R, ((e.clientX - r.left) / r.width) * W - L))) }}
+        onPointerLeave={() => setHx(undefined)}>
+        {bidArea && <polygon points={bidArea} className="bidfill" />}
+        {askArea && <polygon points={askArea} className="askfill" />}
+        {bids.length > 0 && <polyline points={`${x(bids[0].p)},${y(0)} ${bidPts.join(' ')} ${x(lo - span * 0.05)},${y(bids[bids.length - 1].cum)}`} className="bid" />}
+        {asks.length > 0 && <polyline points={`${x(asks[0].p)},${y(0)} ${askPts.join(' ')} ${x(hi + span * 0.05)},${y(asks[asks.length - 1].cum)}`} className="ask" />}
+        <line x1={L} x2={W - R} y1={y(0)} y2={y(0)} className="axis" />
+        {mid != null && <text x={x(mid)} y={H - 6} className="tick" textAnchor="middle">mid ${mid.toFixed(2)}</text>}
+        <text x={L} y={H - 6} className="tick">${lo.toFixed(2)}</text>
+        <text x={W - R} y={H - 6} className="tick" textAnchor="end">${hi.toFixed(2)}</text>
+        {mid != null && hx == null && <text x={x(mid)} y={T + 8} className="tick" textAnchor="middle">{max.toLocaleString()} contracts at the edges</text>}
+        {at?.lv && hp != null && <>
+          <line x1={x(hp)} x2={x(hp)} y1={T} y2={H - B} className="cross" />
+          <text x={x(hp)} y={T + 8} className="tip" textAnchor={hp > (lo + hi) / 2 ? 'end' : 'start'} dx={hp > (lo + hi) / 2 ? -6 : 6}>
+            {at.lv.cum.toLocaleString()} {at.side === 'bid' ? 'bid' : 'offered'} to ${at.lv.p.toFixed(2)}
+          </text>
+        </>}
+      </svg>
+    </div>
+  )
+}
+
 export default function App() {
   const [menu, setMenu] = useState<Menu>()
   const [s, setS] = useState<Sentence>()
@@ -109,6 +158,7 @@ export default function App() {
   const dialog = useRef<HTMLDialogElement>(null)
   const trader = useRef<DeriveClient>()
   const [feed, setFeed] = useState<d.Tape[]>([])
+  const [book, setBook] = useState<d.Book>()
   const copying = useRef(false) // a copied opine opens the modal as soon as its price lands
 
   // Recent opines: the public option tape, every 15 s.
@@ -135,11 +185,12 @@ export default function App() {
   useEffect(() => {
     if (!inst) return
     let live = true
-    setTicker(undefined)
+    setTicker(undefined); setBook(undefined)
     const tick = () => d.publicClient.marketData.getTicker(inst.instrument_name).then((t: any) => live && setTicker(t)).catch(() => {})
     tick()
     const id = setInterval(tick, 3000)
-    return () => { live = false; clearInterval(id) }
+    const stop = d.watchBook(inst.instrument_name, (b) => live && setBook(b))
+    return () => { live = false; clearInterval(id); stop.then((f) => f()) }
   }, [inst?.instrument_name])
 
   // Onboarding: show deposit progress while waiting. Login needs an account, so the user retries once it lands.
@@ -162,6 +213,7 @@ export default function App() {
     setStep({ kind: 'connecting' })
     let w = wallet
     if (!w) {
+      if (provider === 'wc') provider = await d.walletConnect()
       if (!provider) {
         const found = await d.discoverWallets()
         const installed = found.filter((f) => f.provider)
@@ -286,9 +338,10 @@ export default function App() {
       </div>
 
       <dialog ref={dialog} onClose={() => setStep(undefined)}>
+        <form method="dialog" className="x"><button disabled={busy} aria-label="Close">×</button></form>
         {order && (
           <p className="order">
-            <b>You {order.stance === 'do' ? 'do' : "don't"} think {order.sentence.currency} will be {order.sentence.side} ${order.sentence.strike.toLocaleString()}<br />by {expiryLabel(order.sentence.expiry)}.</b>
+            <b>You {order.stance === 'do' ? 'think' : "don't think"} {order.sentence.currency} will be {order.sentence.side} ${order.sentence.strike.toLocaleString()}<br />by {expiryLabel(order.sentence.expiry)}.</b>
             <small>
               {order.direction === 'buy' ? 'Buying' : 'Selling'} {order.amount} {order.sentence.currency} {order.sentence.side === 'above' ? 'call' : 'put'}{order.amount === 1 ? '' : 's'} at ${order.price.toFixed(2)} each on Derive {d.NETWORK}
               {wallet ? ` from ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''}{subaccountId != null ? ` (subaccount ${subaccountId})` : ''}.
@@ -306,7 +359,7 @@ export default function App() {
             <div>
               {wallets.map((w) => w.provider
                 ? <button key={w.name} title={w.name} aria-label={w.name} onClick={() => go(w.provider)}>{w.icon ? <img src={w.icon} alt="" /> : <span>{w.name[0]}</span>}</button>
-                : <a key={w.name} className="missing" title={`${w.name} — not installed`} aria-label={`${w.name}, not installed`} href={w.url} target="_blank" rel="noreferrer"><span>{w.name[0]}</span></a>)}
+                : <button key={w.name} className="missing" title={`${w.name} via WalletConnect`} aria-label={`${w.name} via WalletConnect`} onClick={() => go('wc')}><img src={w.icon} alt="" /></button>)}
             </div>
           </div>
         )}
@@ -323,9 +376,9 @@ export default function App() {
             <button onClick={() => go()}>I've deposited — continue</button>
           </div>
         )}
-        <form method="dialog"><button className="text" disabled={busy}>Close</button></form>
       </dialog>
 
+      <div className="cols">
       {feed.length > 0 && (
         <section className="feed">
           <h2>Latest opinions</h2>
@@ -350,6 +403,8 @@ export default function App() {
           </ul>
         </section>
       )}
+      {inst && <section className="depthcol"><Depth book={book} instrument={inst.instrument_name} /></section>}
+      </div>
 
       {positions.length > 0 && (
         <ul className="positions">
