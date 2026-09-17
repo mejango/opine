@@ -104,7 +104,6 @@ export default function App() {
   const params = new URLSearchParams(location.search)
   // ?demo shows a sample position so the column can be styled without a funded account.
   const demo = params.has('demo')
-  const [shared, setShared] = useState(false)
   const [positions, setPositions] = useState<any[]>(demo ? [
     { instrument_name: 'ETH-20261127-2500-C', amount: '2', average_price: '213.90', mark_price: '231.40', unrealized_pnl: '35.00' },
     { instrument_name: 'BTC-20261225-100000-P', amount: '-0.5', average_price: '4120.00', mark_price: '4388.50', unrealized_pnl: '-134.25' },
@@ -161,13 +160,6 @@ export default function App() {
     if (demo) q.set('demo', '')
     history.replaceState(null, '', `?${q.toString().replace(/=(&|$)/g, '$1')}`)
   }, [inst?.instrument_name, stance, amount, limit])
-  const share = async () => {
-    const url = location.href
-    const text = `I ${stance === 'do' ? 'do' : "don't"} think ${s!.currency} will be ${s!.side} $${s!.strike.toLocaleString()} by ${expiryLabel(s!.expiry)}.`
-    if (navigator.share && /Mobi/.test(navigator.userAgent)) { await navigator.share({ text, url }).catch(() => {}); return }
-    await navigator.clipboard.writeText(url).catch(() => {})
-    setShared(true); setTimeout(() => setShared(false), 1500)
-  }
 
   useEffect(() => {
     if (!inst) return
@@ -357,7 +349,6 @@ export default function App() {
           <b>{limit ? 'Offer' : stance === 'do' ? 'Pay' : 'Receive'} {px ? usd(px) : <i className="ghost" style={{ width: '4em' }} />}</b>
         </button>
         <div className="limit">
-          <button className="text" onClick={share}>{shared ? 'Link copied.' : 'Share this opinion.'}</button>
           {limit == null
             ? <button className="text" onClick={() => setLimit(quote?.toFixed(2) ?? '')}>Or, name your price.</button>
             : <label>
