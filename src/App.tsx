@@ -153,7 +153,6 @@ export default function App() {
           <button onClick={() => step(-1)} aria-label="fewer">−</button>
           <input type="number" min={minAmt} step={stepAmt} value={amount} onChange={(e) => setAmount(e.target.value)} />
           <button onClick={() => step(1)} aria-label="more">+</button>
-          <span>contract{n === 1 ? '' : 's'} · ${px?.toFixed(2)} each</span>
         </div>
         <button className="main" disabled={busy || !px} onClick={answer}>
           <b>{stance === 'do' ? 'Pay' : 'Receive'} {usd(px)}</b>
