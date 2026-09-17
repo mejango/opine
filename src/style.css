@@ -9,16 +9,17 @@ h1 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: va
 .tog.do { color: var(--yes); } .tog.dont { color: var(--no); }
 .tog select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; font: inherit; }
 .tog:has(select:focus-visible) { border-bottom-color: var(--yes); }
-.card { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 8px; }
-.card .main { font: inherit; padding: 8px 14px; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.card { display: inline-block; margin-bottom: 8px; }
+.card .main { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: inherit; cursor: pointer; text-align: left; min-width: 180px; }
 .card .main:hover:not(:disabled) { background: color-mix(in srgb, currentColor 5%, transparent); }
 .card .main:disabled { opacity: .5; cursor: default; }
 .card .main b { display: block; font-size: 20px; }
 .card.do .main b { color: var(--yes); } .card.dont .main b { color: var(--no); }
 .card .main small { color: var(--muted); font-size: 12px; }
-.qty { display: flex; align-items: center; gap: 2px; padding: 0 10px; border-left: 1px solid var(--line); color: var(--muted); font-size: 13px; }
-.qty button { font: inherit; font-size: 16px; line-height: 1; width: 24px; height: 24px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
-.qty input { width: 2.5em; font: inherit; text-align: center; padding: 3px; border: 0; background: transparent; color: var(--fg); -moz-appearance: textfield; }
+.qty { display: flex; align-items: center; gap: 2px; padding: 0 0 6px 2px; color: var(--muted); font-size: 12px; }
+.qty button { font: inherit; font-size: 14px; line-height: 1; width: 20px; height: 20px; border: 0; border-radius: 4px; background: transparent; color: inherit; cursor: pointer; }
+.qty button:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
+.qty input { width: 2em; font: inherit; text-align: center; padding: 0; border: 0; background: transparent; color: var(--fg); -moz-appearance: textfield; }
 .qty input::-webkit-outer-spin-button, .qty input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .row { display: flex; gap: 12px; align-items: center; color: var(--muted); font-size: 15px; flex-wrap: wrap; margin-bottom: 24px; }
 .row button, .panel button { font: inherit; font-size: 15px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: inherit; cursor: pointer; }
