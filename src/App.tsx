@@ -100,7 +100,7 @@ export default function App() {
   const [limit, setLimit] = useState<string>() // set = user named a price → GTC limit instead of market
   const [wallet, setWallet] = useState<{ wallet: WalletClient; address: Address }>()
   const [subaccountId, setSubaccountId] = useState<number>()
-  const [depositAddr, setDepositAddr] = useState<string>()
+  const [depositAddr, setDepositAddr] = useState<{ address: string; token: string }>()
   // ?demo shows a sample position so the column can be styled without a funded account.
   const demo = new URLSearchParams(location.search).has('demo')
   const [positions, setPositions] = useState<any[]>(demo ? [
@@ -369,8 +369,8 @@ export default function App() {
         {step?.kind === 'deposit' && (
           <div>
             <p>No Derive account yet. Send USDC on <b>{d.CHAIN_LABEL}</b> to open one:</p>
-            <p><code>{depositAddr}</code></p>
-            <p>Only USDC, only on {d.CHAIN_LABEL}. Credits in a minute or two.</p>
+            <p><code>{depositAddr?.address}</code></p>
+            <p>Only this USDC, only on {d.CHAIN_LABEL}: <code>{depositAddr?.token}</code>. Credits in a minute or two.</p>
             {pending.map((p, i) => <p key={i}>Deposit of {(Number(p.amount) / 1e6).toFixed(2)} USDC: <b>{p.status}</b></p>)}
             <button onClick={() => (order ? go() : signIn())}>I've deposited — continue</button>
           </div>

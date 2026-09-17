@@ -126,7 +126,9 @@ export async function depositAddress(address: Address) {
     .find((m: any) => m.instruments.includes('ETH-OPTION') && m.collaterals.some((c: any) => c.name === 'USDC'))
   if (!manager) throw new Error('No USDC/ETH-option manager on this network')
   const r = await publicClient.deposits.depositAddress.register({ wallet: address, managerId: manager.manager_id, depositType: 'instant' })
-  return r.deposit_address as string
+  // ponytail: the SDK's bundled USDC address can go stale after a testnet reset — trust the exchange's answer
+  const token = manager.collaterals.find((c: any) => c.name === 'USDC').erc20.underlying_erc20 as string
+  return { address: r.deposit_address as string, token }
 }
 
 // ---- session key ----------------------------------------------------------
