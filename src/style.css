@@ -81,14 +81,16 @@ dialog form.x button:hover:not(:disabled), dialog form.x button:focus-visible { 
 .feed li small { display: block; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
 .feed button.text { display: grid; place-items: center; width: 28px; height: 28px; margin-left: -6px; padding: 0; border: 0; background: transparent; color: var(--teal); cursor: pointer; }
 .feed button.text:hover, .feed button.text:focus-visible { background: color-mix(in srgb, currentColor 12%, transparent); outline: none; }
-/* Depth */
+/* Depth ladder */
 .depthcol { position: sticky; top: 24px; }
 .depth h2 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
 .depth .muted { color: var(--muted); font-size: 14px; }
-.depth svg { width: 100%; height: auto; display: block; touch-action: none; }
-.depth .bidfill { fill: var(--yes); opacity: .18; } .depth .askfill { fill: var(--no); opacity: .18; }
-.depth .bid { fill: none; stroke: var(--yes); stroke-width: 2; } .depth .ask { fill: none; stroke: var(--no); stroke-width: 2; }
-.depth .axis { stroke: var(--line); }
-.depth .cross { stroke: var(--teal); stroke-width: 1; }
-.depth .tick { fill: var(--muted); font-size: 11px; }
-.depth .tip { fill: var(--fg); font-size: 12px; font-weight: 600; }
+.ladder { list-style: none; margin: 0; padding: 0; font-size: 12px; font-variant-numeric: tabular-nums; max-height: 70vh; overflow-y: auto; }
+.ladder li { display: grid; grid-template-columns: 5.5em 1fr 4em; gap: 8px; align-items: center; height: 16px; }
+.ladder .p { color: var(--muted); text-align: right; } .ladder .a { color: var(--muted); }
+.ladder .bar { height: 10px; background: color-mix(in srgb, var(--line) 40%, transparent); }
+.ladder .bar i { display: block; height: 100%; }
+.ladder .bid .bar i { background: var(--yes); } .ladder .ask .bar i { background: var(--no); }
+.ladder li:hover .p, .ladder li:hover .a { color: var(--fg); }
+.ladder .empty .p { opacity: .5; } .ladder .empty .bar { background: transparent; border-left: 1px solid var(--line); }
+.ladder .mid { display: block; height: auto; padding: 6px 0; margin: 2px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: center; color: var(--fg); font-weight: 600; }

@@ -91,51 +91,42 @@ function Payoff({ leg, spot, currency }: { leg: Leg; spot?: number; currency: st
   )
 }
 
-/** Cumulative depth: bids stepping down-left, asks stepping up-right, hover reads size at price. */
-function Depth({ book, instrument }: { book?: d.Book; instrument: string }) {
-  const [hx, setHx] = useState<number>()
-  const W = 480, H = 200, L = 8, R = 8, T = 10, B = 22
-  const side = (levels: [string, string][]) => {
-    let cum = 0
-    return levels.map(([p, a]) => ({ p: Number(p), cum: (cum += Number(a)) }))
+/** Ladder over a fixed price grid: bids above the mid line (best nearest it), asks below, empty buckets kept so range reads. */
+function Depth({ book, instrument, group }: { book?: d.Book; instrument: string; group: number }) {
+  if (!book || (!book.bids.length && !book.asks.length)) return <div className="depth"><h2>Market depth</h2><p className="muted">No resting orders on {instrument}.</p></div>
+  const bestBid = book.bids[0] ? Number(book.bids[0][0]) : undefined, bestAsk = book.asks[0] ? Number(book.asks[0][0]) : undefined
+  const N = 15
+  const hiBid = bestBid ?? (bestAsk! - group), loAsk = bestAsk ?? (bestBid! + group)
+  const grid = (from: number, dir: 1 | -1) => Array.from({ length: N }, (_, i) => Math.round((from + dir * i * group) * 100) / 100)
+  // Sum each level into the grid row it falls in, anchored on the best price of its side.
+  const bucket = (xs: [string, string][], from: number, dir: 1 | -1) => {
+    const m = new Map<number, number>()
+    for (const [p, a] of xs) {
+      const key = Math.round((from + dir * Math.round(Math.abs(Number(p) - from) / group) * group) * 100) / 100
+      m.set(key, (m.get(key) ?? 0) + Number(a))
+    }
+    return m
   }
-  const bids = book ? side(book.bids) : [], asks = book ? side(book.asks) : []
-  if (!bids.length && !asks.length) return <div className="depth"><h2>Market depth</h2><p className="muted">No resting orders on {instrument}.</p></div>
-  const lo = Math.min(...bids.map((b) => b.p), ...asks.map((a) => a.p)), hi = Math.max(...bids.map((b) => b.p), ...asks.map((a) => a.p))
-  const span = hi - lo || 1
-  const max = Math.max(...bids.map((b) => b.cum), ...asks.map((a) => a.cum), 1)
-  const x = (p: number) => L + ((p - (lo - span * 0.05)) / (span * 1.1)) * (W - L - R)
-  const y = (v: number) => T + (1 - v / max) * (H - T - B)
-  // step paths: bids run from best (right) outwards (left); asks from best (left) outwards (right)
-  const bidPts = bids.flatMap((b, i) => [`${x(b.p)},${y(i ? bids[i - 1].cum : 0)}`, `${x(b.p)},${y(b.cum)}`])
-  const askPts = asks.flatMap((a, i) => [`${x(a.p)},${y(i ? asks[i - 1].cum : 0)}`, `${x(a.p)},${y(a.cum)}`])
-  const bidArea = bids.length ? `${x(bids[0].p)},${y(0)} ${bidPts.join(' ')} ${x(lo - span * 0.05)},${y(bids[bids.length - 1].cum)} ${x(lo - span * 0.05)},${y(0)}` : ''
-  const askArea = asks.length ? `${x(asks[0].p)},${y(0)} ${askPts.join(' ')} ${x(hi + span * 0.05)},${y(asks[asks.length - 1].cum)} ${x(hi + span * 0.05)},${y(0)}` : ''
-  const hp = hx != null ? lo - span * 0.05 + (hx / (W - L - R)) * span * 1.1 : undefined
-  const at = hp != null ? (bids[0] && hp <= bids[0].p ? { side: 'bid', lv: bids.filter((b) => b.p >= hp).at(-1) } : { side: 'ask', lv: asks.filter((a) => a.p <= hp).at(-1) }) : undefined
-  const mid = bids[0] && asks[0] ? (bids[0].p + asks[0].p) / 2 : undefined
+  const bids = bucket(book.bids, hiBid, -1), asks = bucket(book.asks, loAsk, 1)
+  const max = Math.max(...bids.values(), ...asks.values(), 1)
+  const row = (p: number, side: 'bid' | 'ask') => {
+    const a = (side === 'bid' ? bids : asks).get(p) ?? 0
+    return (
+      <li key={`${side}${p}`} className={`${side}${a ? '' : ' empty'}`} title={a ? `${a} ${side === 'bid' ? 'bid' : 'offered'} at $${p.toFixed(2)}` : `nothing at $${p.toFixed(2)}`}>
+        <span className="p">${p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        <span className="bar"><i style={{ width: `${(a / max) * 100}%` }} /></span>
+        <span className="a">{a ? a.toLocaleString() : ''}</span>
+      </li>
+    )
+  }
   return (
     <div className="depth">
       <h2>Market depth</h2>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Order book depth for ${instrument}`}
-        onPointerMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); setHx(Math.max(0, Math.min(W - L - R, ((e.clientX - r.left) / r.width) * W - L))) }}
-        onPointerLeave={() => setHx(undefined)}>
-        {bidArea && <polygon points={bidArea} className="bidfill" />}
-        {askArea && <polygon points={askArea} className="askfill" />}
-        {bids.length > 0 && <polyline points={`${x(bids[0].p)},${y(0)} ${bidPts.join(' ')} ${x(lo - span * 0.05)},${y(bids[bids.length - 1].cum)}`} className="bid" />}
-        {asks.length > 0 && <polyline points={`${x(asks[0].p)},${y(0)} ${askPts.join(' ')} ${x(hi + span * 0.05)},${y(asks[asks.length - 1].cum)}`} className="ask" />}
-        <line x1={L} x2={W - R} y1={y(0)} y2={y(0)} className="axis" />
-        {mid != null && <text x={x(mid)} y={H - 6} className="tick" textAnchor="middle">mid ${mid.toFixed(2)}</text>}
-        <text x={L} y={H - 6} className="tick">${lo.toFixed(2)}</text>
-        <text x={W - R} y={H - 6} className="tick" textAnchor="end">${hi.toFixed(2)}</text>
-        {mid != null && hx == null && <text x={x(mid)} y={T + 8} className="tick" textAnchor="middle">{max.toLocaleString()} contracts at the edges</text>}
-        {at?.lv && hp != null && <>
-          <line x1={x(hp)} x2={x(hp)} y1={T} y2={H - B} className="cross" />
-          <text x={x(hp)} y={T + 8} className="tip" textAnchor={hp > (lo + hi) / 2 ? 'end' : 'start'} dx={hp > (lo + hi) / 2 ? -6 : 6}>
-            {at.lv.cum.toLocaleString()} {at.side === 'bid' ? 'bid' : 'offered'} to ${at.lv.p.toFixed(2)}
-          </text>
-        </>}
-      </svg>
+      <ol className="ladder">
+        {grid(hiBid, -1).reverse().map((p) => row(p, 'bid'))}
+        <li className="mid">{bestBid != null && bestAsk != null ? `mid $${((bestBid + bestAsk) / 2).toFixed(2)} · spread $${(bestAsk - bestBid).toFixed(2)}` : 'one-sided book'}</li>
+        {grid(loAsk, 1).map((p) => row(p, 'ask'))}
+      </ol>
     </div>
   )
 }
@@ -189,7 +180,7 @@ export default function App() {
     const tick = () => d.publicClient.marketData.getTicker(inst.instrument_name).then((t: any) => live && setTicker(t)).catch(() => {})
     tick()
     const id = setInterval(tick, 3000)
-    const stop = d.watchBook(inst.instrument_name, (b) => live && setBook(b))
+    const stop = d.watchBook(inst.instrument_name, s!.strike, (b) => live && setBook(b))
     return () => { live = false; clearInterval(id); stop.then((f) => f()) }
   }, [inst?.instrument_name])
 
@@ -403,7 +394,7 @@ export default function App() {
           </ul>
         </section>
       )}
-      {inst && <section className="depthcol"><Depth book={book} instrument={inst.instrument_name} /></section>}
+      {inst && <section className="depthcol"><Depth book={book} instrument={inst.instrument_name} group={d.bookGroup(s.strike)} /></section>}
       </div>
 
       {positions.length > 0 && (

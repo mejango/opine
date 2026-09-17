@@ -190,9 +190,11 @@ export function placeOpinion(c: DeriveClient, p: { subaccountId: number; instrum
 export type Book = { bids: [string, string][]; asks: [string, string][] }
 
 /** Live top-20 book for an instrument; returns the unsubscribe. */
-export async function watchBook(instrument: string, onBook: (b: Book) => void) {
+export const bookGroup = (strike: number) => (strike >= 10000 ? 10 : 1) // ponytail: $1 buckets read fine below BTC-sized strikes
+
+export async function watchBook(instrument: string, strike: number, onBook: (b: Book) => void) {
   await ready
-  const ch = channel('orderbook.{instrument_name}.{group}.{depth}', { instrument_name: instrument, group: '1', depth: '20' })
+  const ch = channel('orderbook.{instrument_name}.{group}.{depth}', { instrument_name: instrument, group: String(bookGroup(strike)) as '1' | '10', depth: '100' })
   const sub = await publicClient.subscriptions.subscribe(ch, (b: any) => onBook({ bids: b.bids, asks: b.asks }))
   return () => sub.unsubscribe().catch(() => {})
 }
