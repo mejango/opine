@@ -71,8 +71,9 @@ dialog form { margin-top: 12px; text-align: right; }
 .feed h2 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
 .feed ul { list-style: none; padding: 0; margin: 0; }
 .feed li { padding: 14px 0; border-top: 1px solid var(--line); }
-.feed header, .feed footer { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12px; }
+.feed header { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12px; }
 .feed header b { font-weight: 500; font-family: ui-monospace, monospace; }
-.feed li p { margin: 6px 0; font-size: 17px; font-weight: 500; }
+.feed li p { margin: 6px 0 2px; font-size: 17px; font-weight: 500; }
+.feed li small { display: block; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
 .feed button.text { display: grid; place-items: center; width: 28px; height: 28px; margin-left: -6px; padding: 0; border: 0; background: transparent; color: var(--teal); cursor: pointer; }
 .feed button.text:hover, .feed button.text:focus-visible { background: color-mix(in srgb, currentColor 12%, transparent); outline: none; }
