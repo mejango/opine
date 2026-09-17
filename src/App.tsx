@@ -383,7 +383,6 @@ export default function App() {
                 onBlur={() => setFine(false)} onKeyDown={(e) => e.key === 'Enter' && setFine(false)} style={{ width: `${Math.max(1, amount.length) + 1}ch` }} aria-label="contracts" />
             : <button className="n" onPointerDown={holdStart} onPointerUp={holdEnd} onPointerLeave={holdEnd} onPointerCancel={holdEnd} onContextMenu={(e) => e.preventDefault()} title="Hold to type an exact amount">{amount}</button>}
           <button onClick={() => setAmount(ladder(amount, 1))} aria-label="more">+</button>
-          <span>contract{n === 1 ? '' : 's'}</span>
         </div>
         <button className="main" disabled={busy || !px} onClick={() => go()}>
           <b>{stance === 'do' ? 'Pay' : 'Receive'} {px ? usd(px) : <i className="ghost" style={{ width: '4em' }} />}</b>
