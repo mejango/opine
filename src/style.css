@@ -4,10 +4,10 @@
 body { margin: 0; background: var(--bg); color: var(--fg); font: 18px/1.5 system-ui, sans-serif; }
 main { max-width: 1100px; margin: 0 auto; padding: 48px 16px; }
 h1 { display: flex; gap: 12px; align-items: flex-start; line-height: 1; }
-h1 .logo { font-size: 44px; letter-spacing: 0; line-height: 1; margin-top: -4px; }
-h1 small { display: block; margin: 2px 0 0; line-height: 1.2; font-size: 13px; letter-spacing: .05em; text-transform: none; font-weight: 400; opacity: .7; }
+h1 .logo { font-size: 32px; letter-spacing: 0; line-height: 1; margin-top: -4px; }
+h1 small { display: block; margin: 2px 0 0; line-height: 1.2; font-size: 12px; letter-spacing: .05em; text-transform: none; font-weight: 400; opacity: .7; }
 h1 small a { color: inherit; text-decoration: none; } h1 small a:hover { text-decoration: underline; }
-h1 { font-size: 36px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 32px; }
+h1 { font-size: 26px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 32px; }
 .sentence { font-size: clamp(40px, 8vw, 96px); line-height: 1.2; font-weight: 600; margin: 0 0 40px; }
 .tog { position: relative; display: inline-block; white-space: nowrap; }
 .tog button { font: inherit; color: inherit; background: none; border: 0; border-bottom: 3px solid currentColor; padding: 0; margin: 0; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
