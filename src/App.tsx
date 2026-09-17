@@ -50,8 +50,9 @@ export default function App() {
   const [positions, setPositions] = useState<any[]>([])
   const [loadError, setLoadError] = useState<string>()
   // The modal: what the click is doing right now.
-  const [step, setStep] = useState<{ kind: 'connecting' | 'deposit' | 'signing' | 'placing' | 'done' | 'error'; text?: string }>()
-  const [order, setOrder] = useState<{ instrument: string; direction: 'buy' | 'sell'; price: number; amount: number }>()
+  const [step, setStep] = useState<{ kind: 'connecting' | 'choose' | 'deposit' | 'signing' | 'placing' | 'done' | 'error'; text?: string }>()
+  const [wallets, setWallets] = useState<d.WalletOption[]>([])
+  const [order, setOrder] = useState<{ instrument: string; direction: 'buy' | 'sell'; price: number; amount: number; sentence: Sentence; stance: 'do' | 'dont' }>()
   const dialog = useRef<HTMLDialogElement>(null)
   const trader = useRef<DeriveClient>()
 
@@ -93,10 +94,19 @@ export default function App() {
   }
 
   /** Wallet → login → subaccount. Returns undefined when the wallet has no Derive account yet (modal shows deposit). */
-  const connect = async () => {
+  const connect = async (provider?: any) => {
     setStep({ kind: 'connecting' })
-    const w = wallet ?? (await d.connectWallet())
-    setWallet(w)
+    let w = wallet
+    if (!w) {
+      if (!provider) {
+        const found = await d.discoverWallets()
+        if (!found.length) throw new Error('No wallet found in this browser. Install one (MetaMask, Rabby, Coinbase Wallet…) and reload.')
+        if (found.length > 1) { setWallets(found); setStep({ kind: 'choose' }); return } // let them pick
+        provider = found[0].provider
+      }
+      w = await d.connectWallet(provider)
+      setWallet(w)
+    }
     if (subaccountId != null) return { w, id: subaccountId }
     try {
       await d.ownerLogin(w.wallet, w.address)
@@ -124,13 +134,13 @@ export default function App() {
   }
 
   /** The whole flow behind one click: connect, onboard if needed, sign once, place, report. */
-  const go = async () => {
+  const go = async (provider?: any) => {
     if (!menu || !s || !ticker || !inst) return
-    const o = { ...resolve(menu, s, stance === 'do' ? 'yes' : 'no', ticker)!, amount: Number(amount) }
+    const o = { ...resolve(menu, s, stance === 'do' ? 'yes' : 'no', ticker)!, amount: Number(amount), sentence: { ...s }, stance }
     setOrder(o)
-    dialog.current?.showModal()
+    if (!dialog.current?.open) dialog.current?.showModal()
     try {
-      const acct = await connect()
+      const acct = await connect(provider)
       if (!acct) return
       const c = await ensureTrader(acct.w)
       setStep({ kind: 'placing' })
@@ -141,7 +151,7 @@ export default function App() {
         : { kind: 'done', text: `${o.direction === 'buy' ? 'Bought' : 'Sold'} ${filled} at ~$${res.order.average_price ?? o.price}` })
       await refreshPositions(c, acct.id)
     } catch (e: any) {
-      setStep({ kind: 'error', text: e?.message ?? String(e) })
+      setStep({ kind: 'error', text: e?.details || e?.shortMessage || e?.message || String(e) }) // viem errors carry a tidy `details`
     }
   }
 
@@ -168,7 +178,7 @@ export default function App() {
   const minAmt = Number(inst?.minimum_amount ?? 0.1), stepAmt = Number(inst?.amount_step ?? 0.01)
   const step_ = (dir: 1 | -1) => setAmount(String(Math.max(minAmt, Math.round((n + dir) * 100) / 100)))
   const usd = (x?: number) => (x ? `$${(x * n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—')
-  const busy = step && !['done', 'error', 'deposit'].includes(step.kind)
+  const busy = step && !['done', 'error', 'deposit', 'choose'].includes(step.kind)
 
   return (
     <main>
@@ -191,7 +201,7 @@ export default function App() {
           <input type="number" min={minAmt} step={stepAmt} value={amount} onChange={(e) => setAmount(e.target.value)} />
           <button onClick={() => step_(1)} aria-label="more">+</button>
         </div>
-        <button className="main" disabled={busy || !px} onClick={go}>
+        <button className="main" disabled={busy || !px} onClick={() => go()}>
           <b>{stance === 'do' ? 'Pay' : 'Receive'} {px ? usd(px) : <i className="ghost" style={{ width: '4em' }} />}</b>
         </button>
       </div>
@@ -199,11 +209,22 @@ export default function App() {
       <dialog ref={dialog} onClose={() => setStep(undefined)}>
         {order && (
           <p className="order">
-            <b>{order.direction === 'buy' ? 'Buy' : 'Sell'} {order.amount} × {order.instrument}</b>
-            <small>${order.price.toFixed(2)} each · {d.NETWORK}{wallet ? ` · ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''}{subaccountId != null ? ` · #${subaccountId}` : ''}</small>
+            <b>You {order.stance === 'do' ? 'do' : "don't"} think {order.sentence.currency} will be {order.sentence.side} ${order.sentence.strike.toLocaleString()} by {expiryLabel(order.sentence.expiry)}.</b>
+            <small>
+              {order.direction === 'buy' ? 'Buying' : 'Selling'} {order.amount} {order.sentence.currency} {order.sentence.side === 'above' ? 'call' : 'put'}{order.amount === 1 ? '' : 's'} at ${order.price.toFixed(2)} each on Derive {d.NETWORK}
+              {wallet ? ` from ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''}{subaccountId != null ? ` (subaccount ${subaccountId})` : ''}.
+            </small>
           </p>
         )}
         {step?.kind === 'connecting' && <p>Connecting wallet…</p>}
+        {step?.kind === 'choose' && (
+          <div className="wallets">
+            <p>Connect with</p>
+            {wallets.map((w) => (
+              <button key={w.name} onClick={() => go(w.provider)}>{w.icon && <img src={w.icon} alt="" />}{w.name}</button>
+            ))}
+          </div>
+        )}
         {step?.kind === 'signing' && <p>Sign once to authorise a 30-day trading key. Trades after this need no signature.</p>}
         {step?.kind === 'placing' && <p>Placing…</p>}
         {step?.kind === 'done' && <p className="ok">{step.text}</p>}
@@ -214,10 +235,10 @@ export default function App() {
             <p><code>{depositAddr}</code></p>
             <p>Only USDC, only on {d.CHAIN_LABEL}. Credits in a minute or two.</p>
             {pending.map((p, i) => <p key={i}>Deposit of {(Number(p.amount) / 1e6).toFixed(2)} USDC: <b>{p.status}</b></p>)}
-            <button onClick={go}>I've deposited — continue</button>
+            <button onClick={() => go()}>I've deposited — continue</button>
           </div>
         )}
-        <form method="dialog"><button disabled={busy}>Close</button></form>
+        <form method="dialog"><button className="text" disabled={busy}>Close</button></form>
       </dialog>
 
       {positions.length > 0 && (

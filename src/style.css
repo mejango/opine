@@ -12,32 +12,40 @@ h1 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: va
 .tog.do { color: var(--yes); } .tog.dont { color: var(--no); }
 .tog select { position: absolute; inset: 0; width: 100%; opacity: 0; pointer-events: none; font: inherit; }
 .card { display: inline-block; margin-bottom: 8px; }
-.card .main { font: inherit; padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: inherit; cursor: pointer; text-align: left; min-width: 180px; }
+.card .main { font: inherit; padding: 8px 14px; border: 1px solid var(--line); background: transparent; color: inherit; cursor: pointer; text-align: left; min-width: 180px; }
 .card .main:hover:not(:disabled) { background: color-mix(in srgb, currentColor 5%, transparent); }
 .card .main:disabled { opacity: .5; cursor: default; }
 .card .main b { display: block; font-size: 20px; }
 .card .main b { color: var(--teal); }
 .qty { display: flex; align-items: center; gap: 2px; padding: 0 0 6px 2px; color: var(--muted); font-size: 12px; }
-.qty button { font: inherit; font-size: 14px; line-height: 1; width: 20px; height: 20px; border: 0; border-radius: 4px; background: transparent; color: inherit; cursor: pointer; }
+.qty button { font: inherit; font-size: 14px; line-height: 1; width: 20px; height: 20px; border: 0; background: transparent; color: inherit; cursor: pointer; }
 .qty button:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
 .qty input { width: 2em; font: inherit; text-align: center; padding: 0; border: 0; background: transparent; color: var(--fg); -moz-appearance: textfield; }
 .qty input::-webkit-outer-spin-button, .qty input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .row button, .positions { list-style: none; padding: 0; margin: 0; }
 .positions li { padding: 12px 0; border-top: 1px solid var(--line); }
 .positions small { color: var(--muted); display: block; }
-dialog { background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 12px; padding: 24px; max-width: 420px; width: calc(100% - 32px); font-size: 16px; }
+dialog { background: var(--bg); color: var(--fg); border: 1px solid var(--line); padding: 24px; max-width: 420px; width: calc(100% - 32px); font-size: 16px; }
 dialog::backdrop { background: rgba(0,0,0,.5); }
 dialog p { margin: 0 0 12px; }
 dialog .order b { display: block; } dialog .order small { color: var(--muted); font-size: 13px; }
 dialog code { font-size: 14px; word-break: break-all; user-select: all; }
 dialog .ok { color: var(--yes); } dialog .err { color: var(--no); white-space: pre-wrap; }
-dialog button { font: inherit; font-size: 15px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: inherit; cursor: pointer; }
+dialog button { font: inherit; font-size: 15px; padding: 6px 12px; border: 1px solid var(--line); background: transparent; color: inherit; cursor: pointer; }
+dialog button.text { border: 0; padding: 6px 8px; color: var(--muted); }
+dialog button.text:hover:not(:disabled), dialog button.text:focus-visible { color: var(--fg); background: color-mix(in srgb, currentColor 8%, transparent); outline: none; }
+dialog button:disabled { opacity: .4; cursor: default; }
+.wallets { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.wallets p { margin: 0 0 4px; color: var(--muted); }
+.wallets button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; }
+.wallets button:hover { background: color-mix(in srgb, currentColor 6%, transparent); }
+.wallets img { width: 22px; height: 22px; }
 dialog form { margin-top: 12px; text-align: right; }
 /* Ghost loading: same layout, shimmering blanks. */
-.ghost i, i.ghost { display: inline-block; height: .8em; vertical-align: -.1em; border-radius: .15em; background: linear-gradient(90deg, var(--line) 25%, color-mix(in srgb, var(--line) 40%, var(--bg)) 50%, var(--line) 75%); background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+.ghost i, i.ghost { display: inline-block; height: .8em; vertical-align: -.1em; background: linear-gradient(90deg, var(--line) 25%, color-mix(in srgb, var(--line) 40%, var(--bg)) 50%, var(--line) 75%); background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite; }
 .sentence.ghost { color: var(--muted); }
-.sentence.ghost i { border-bottom: 3px solid var(--line); border-radius: .15em .15em 0 0; }
-.card.ghost .main { display: block; width: 8em; height: 2.9em; border-radius: 10px; background: linear-gradient(90deg, var(--line) 25%, color-mix(in srgb, var(--line) 40%, var(--bg)) 50%, var(--line) 75%); background-size: 200% 100%; }
+.sentence.ghost i { border-bottom: 3px solid var(--line); }
+.card.ghost .main { display: block; width: 8em; height: 2.9em; background: linear-gradient(90deg, var(--line) 25%, color-mix(in srgb, var(--line) 40%, var(--bg)) 50%, var(--line) 75%); background-size: 200% 100%; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .ghost i, i.ghost { animation: none; } }
 .err { color: var(--no); }

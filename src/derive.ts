@@ -27,9 +27,28 @@ export async function allOptions() {
 // ---- wallet -------------------------------------------------------------
 declare global { interface Window { ethereum?: any } }
 
-export async function connectWallet(): Promise<{ wallet: WalletClient; address: Address }> {
-  if (!window.ethereum) throw new Error('No browser wallet found — install MetaMask or similar')
-  const wallet = createWalletClient({ transport: custom(window.ethereum) })
+export type WalletOption = { name: string; icon?: string; provider: any }
+
+/** Installed wallets via EIP-6963 announcements; falls back to the legacy window.ethereum. */
+export function discoverWallets(): Promise<WalletOption[]> {
+  return new Promise((resolve) => {
+    const found: WalletOption[] = []
+    const on = (e: any) => {
+      const { info, provider } = e.detail
+      if (!found.some((w) => w.name === info.name)) found.push({ name: info.name, icon: info.icon, provider })
+    }
+    window.addEventListener('eip6963:announceProvider', on)
+    window.dispatchEvent(new Event('eip6963:requestProvider'))
+    setTimeout(() => {
+      window.removeEventListener('eip6963:announceProvider', on)
+      if (!found.length && window.ethereum) found.push({ name: 'Browser wallet', provider: window.ethereum })
+      resolve(found)
+    }, 200)
+  })
+}
+
+export async function connectWallet(provider: any): Promise<{ wallet: WalletClient; address: Address }> {
+  const wallet = createWalletClient({ transport: custom(provider) })
   const [address] = await wallet.requestAddresses()
   return { wallet, address }
 }
