@@ -9,6 +9,10 @@ type Stage = 'browsing' | 'noAccount' | 'ready'
 /** A word in the sentence that opens a native dropdown: underlined label with an invisible <select> on top. */
 function Toggle({ value, options, onChange, className }: { value: string; options: [string, string][]; onChange: (v: string) => void; className?: string }) {
   const label = options.find(([v]) => v === value)?.[1] ?? value
+  if (options.length === 2) { // binary: a click flips it, no menu
+    const other = options.find(([v]) => v !== value)![0]
+    return <button type="button" className={`tog ${className ?? ''}`} onClick={() => onChange(other)}>{label}</button>
+  }
   return (
     <span className={`tog ${className ?? ''}`}>
       {label}
