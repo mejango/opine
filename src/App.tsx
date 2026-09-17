@@ -424,7 +424,7 @@ export default function App() {
                   <small>{size} contract{size === 1 ? '' : 's'}, {long ? 'paid' : 'received'} ${avg.toFixed(2)} each, now ${mark.toFixed(2)}</small>
                   <b className={pnl >= 0 ? 'gain' : 'loss'}>{pnl >= 0 ? '+' : '−'}${Math.abs(pnl).toFixed(2)}</b>
                   <footer>
-                    <button className="text" onClick={() => go(undefined, { instrument: p.instrument_name, direction: long ? 'sell' : 'buy', amount: size })}>Unwind</button>
+                    <button className="text" onClick={() => go(undefined, { instrument: p.instrument_name, direction: long ? 'sell' : 'buy', amount: size })}>{pnl >= 0 ? 'Take profits' : 'Take losses'}</button>
                     <button className="text" onClick={() => go(undefined, { instrument: p.instrument_name, direction: long ? 'buy' : 'sell', amount: size })}>Double down</button>
                   </footer>
                 </li>
