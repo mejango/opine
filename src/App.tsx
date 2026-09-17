@@ -145,7 +145,7 @@ export default function App() {
     }
   }
 
-  if (!menu || !s) return <main><h1>Opine</h1><p>{loadError ?? 'Loading markets…'}</p></main>
+  if (!menu || !s) return <main><h1><span className="logo">⌥</span> Opine</h1><p>{loadError ?? 'Loading markets…'}</p></main>
 
   const set = async (patch: Partial<Sentence>) => {
     if (patch.currency) patch.strike = await d.spot(patch.currency) // new coin, new price scale
@@ -160,7 +160,7 @@ export default function App() {
 
   return (
     <main>
-      <h1>Opine</h1>
+      <h1><span className="logo">⌥</span> Opine</h1>
       <p className="sentence">
         I{' '}
         <Toggle value={stance} options={[['do', 'do'], ['dont', "don't"]]} onChange={(v) => setStance(v as 'do' | 'dont')} className={stance} />{' '}
