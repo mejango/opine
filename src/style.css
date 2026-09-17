@@ -77,7 +77,16 @@ dialog form.x button:hover:not(:disabled), dialog form.x button:focus-visible { 
 .payoff .tip { fill: var(--fg); font-size: 12px; font-weight: 600; }
 /* Feed */
 .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 64px; align-items: start; }
-@media (max-width: 800px) { .cols { grid-template-columns: 1fr; } }
+.tabs { display: none; }
+@media (max-width: 800px) {
+  .cols { grid-template-columns: 1fr; margin-top: 0; }
+  .tabs { display: flex; margin-top: 48px; border-bottom: 1px solid var(--line); }
+  .tabs button { flex: 1; font: inherit; font-size: 13px; letter-spacing: .15em; text-transform: uppercase; font-weight: 600; padding: 10px 0; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; background: none; color: var(--muted); cursor: pointer; }
+  .tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--fg); }
+  .cols h2 { display: none; }
+  .cols.latest .mine, .cols.mine .feed { display: none; }
+  .mine { position: static; }
+}
 .feed { min-width: 0; }
 .feed h2 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
 .feed ul { list-style: none; padding: 0; margin: 0; }

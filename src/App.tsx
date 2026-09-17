@@ -101,7 +101,12 @@ export default function App() {
   const [wallet, setWallet] = useState<{ wallet: WalletClient; address: Address }>()
   const [subaccountId, setSubaccountId] = useState<number>()
   const [depositAddr, setDepositAddr] = useState<string>()
-  const [positions, setPositions] = useState<any[]>([])
+  // ?demo shows a sample position so the column can be styled without a funded account.
+  const demo = new URLSearchParams(location.search).has('demo')
+  const [positions, setPositions] = useState<any[]>(demo ? [
+    { instrument_name: 'ETH-20261127-2500-C', amount: '2', average_price: '213.90', mark_price: '231.40', unrealized_pnl: '35.00' },
+    { instrument_name: 'BTC-20261225-100000-P', amount: '-0.5', average_price: '4120.00', mark_price: '4388.50', unrealized_pnl: '-134.25' },
+  ] : [])
   const [loadError, setLoadError] = useState<string>()
   // The modal: what the click is doing right now.
   const [step, setStep] = useState<{ kind: 'connecting' | 'choose' | 'deposit' | 'signing' | 'placing' | 'done' | 'error'; text?: string }>()
@@ -110,6 +115,7 @@ export default function App() {
   const dialog = useRef<HTMLDialogElement>(null)
   const trader = useRef<DeriveClient>()
   const [feed, setFeed] = useState<d.Tape[]>([])
+  const [tab, setTab] = useState<'latest' | 'mine'>('latest') // mobile only: the two columns become tabs
   const copying = useRef(false) // a copied opine opens the modal as soon as its price lands
 
   // Recent opines: the public option tape, every 15 s.
@@ -371,7 +377,11 @@ export default function App() {
         )}
       </dialog>
 
-      <div className="cols">
+      <nav className="tabs" role="tablist">
+        <button role="tab" aria-selected={tab === 'latest'} onClick={() => setTab('latest')}>Latest opinions</button>
+        <button role="tab" aria-selected={tab === 'mine'} onClick={() => setTab('mine')}>Your opinions</button>
+      </nav>
+      <div className={`cols ${tab}`}>
       {feed.length > 0 && (
         <section className="feed">
           <h2>Latest opinions</h2>
@@ -398,7 +408,7 @@ export default function App() {
       )}
       <section className="mine">
         <h2>Your opinions</h2>
-        {!trader.current ? (
+        {!trader.current && !demo ? (
           <p className="muted"><button className="text" onClick={() => signIn()}>Connect</button></p>
         ) : positions.length === 0 ? (
           <p className="muted">No opinions yet. Say one above.</p>
