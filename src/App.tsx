@@ -7,10 +7,10 @@ import * as d from './derive'
 type Stage = 'browsing' | 'noAccount' | 'ready'
 
 /** A word in the sentence that opens a native dropdown: visible label + text chevron, invisible <select> on top. */
-function Toggle({ value, options, onChange }: { value: string; options: [string, string][]; onChange: (v: string) => void }) {
+function Toggle({ value, options, onChange, className }: { value: string; options: [string, string][]; onChange: (v: string) => void; className?: string }) {
   const label = options.find(([v]) => v === value)?.[1] ?? value
   return (
-    <span className="tog">
+    <span className={`tog ${className ?? ''}`}>
       {label}<span className="chev">⌄</span>
       <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -22,6 +22,7 @@ function Toggle({ value, options, onChange }: { value: string; options: [string,
 export default function App() {
   const [menu, setMenu] = useState<Menu>()
   const [s, setS] = useState<Sentence>()
+  const [stance, setStance] = useState<'do' | 'dont'>('do') // do = buy the option, don't = sell it
   const [ticker, setTicker] = useState<Ticker>()
   const [amount, setAmount] = useState('1')
   const [wallet, setWallet] = useState<{ wallet: WalletClient; address: Address }>()
@@ -98,7 +99,8 @@ export default function App() {
     return trader.current
   }
 
-  const answer = async (yes: boolean) => {
+  const answer = async () => {
+    const yes = stance === 'do'
     if (!menu || !s || !ticker || !inst) return
     setBusy(true); setMsg(undefined)
     try {
@@ -124,7 +126,7 @@ export default function App() {
     if (patch.currency) patch.strike = await d.spot(patch.currency) // new coin, new price scale
     setS((cur) => pick(menu, { ...cur!, ...patch }))
   }
-  const ask = ticker && Number(ticker.a), bid = ticker && Number(ticker.b)
+  const px = ticker ? Number(stance === 'do' ? ticker.a : ticker.b) : undefined
   const n = Number(amount) || 0
   const cta = !wallet ? 'Connect wallet' : stage === 'noAccount' ? 'Waiting for deposit…' : undefined
   const minAmt = Number(inst?.minimum_amount ?? 0.1), stepAmt = Number(inst?.amount_step ?? 0.01)
@@ -135,7 +137,9 @@ export default function App() {
     <main>
       <h1>Opine</h1>
       <p className="sentence">
-        I think{' '}
+        I{' '}
+        <Toggle value={stance} options={[['do', 'do'], ['dont', "don't"]]} onChange={(v) => setStance(v as 'do' | 'dont')} className={stance} />{' '}
+        think{' '}
         <Toggle value={s.currency} options={menu.currencies.map((c) => [c, c])} onChange={(v) => set({ currency: v })} />{' '}
         will be{' '}
         <Toggle value={s.side} options={[['above', 'above'], ['below', 'below']]} onChange={(v) => set({ side: v as Sentence['side'] })} />{' '}
@@ -144,22 +148,17 @@ export default function App() {
         <Toggle value={String(s.expiry)} options={menu.expiries(s.currency).map((x) => [String(x), expiryLabel(x)])} onChange={(v) => set({ expiry: Number(v) })} />.
       </p>
 
-      <div className="answers">
-        {([['yes', 'Yes', ask, `Buy ${n} ${inst?.instrument_name} · pay $${ask?.toFixed(2)} each`],
-           ['no', 'No', bid, `Sell ${n} ${inst?.instrument_name} · receive $${bid?.toFixed(2)} each`]] as const).map(([k, word, px, sub]) => (
-          <div className={`card ${k}`} key={k}>
-            <button className="main" disabled={busy || !px} onClick={() => answer(k === 'yes')}>
-              <b>{word} {usd(px)}</b>
-              <small>{cta ?? sub}</small>
-            </button>
-            <div className="qty">
-              <button onClick={() => step(-1)} aria-label="fewer">−</button>
-              <input type="number" min={minAmt} step={stepAmt} value={amount} onChange={(e) => setAmount(e.target.value)} />
-              <button onClick={() => step(1)} aria-label="more">+</button>
-              <span>contract{n === 1 ? '' : 's'}</span>
-            </div>
-          </div>
-        ))}
+      <div className={`card ${stance}`}>
+        <button className="main" disabled={busy || !px} onClick={answer}>
+          <b>{stance === 'do' ? 'Pay' : 'Receive'} {usd(px)}</b>
+          <small>{cta ?? `${stance === 'do' ? 'Buy' : 'Sell'} ${n} ${inst?.instrument_name} · $${px?.toFixed(2)} each`}</small>
+        </button>
+        <div className="qty">
+          <button onClick={() => step(-1)} aria-label="fewer">−</button>
+          <input type="number" min={minAmt} step={stepAmt} value={amount} onChange={(e) => setAmount(e.target.value)} />
+          <button onClick={() => step(1)} aria-label="more">+</button>
+          <span>contract{n === 1 ? '' : 's'}</span>
+        </div>
       </div>
       <div className="row">
         <span>{d.NETWORK}{wallet ? ` · ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''}{subaccountId != null ? ` · #${subaccountId}` : ''}</span>

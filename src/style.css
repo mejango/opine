@@ -6,16 +6,16 @@ main { max-width: 720px; margin: 0 auto; padding: 48px 16px; }
 h1 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin: 0 0 32px; }
 .sentence { font-size: clamp(28px, 5vw, 44px); line-height: 1.3; font-weight: 600; margin: 0 0 32px; }
 .tog { position: relative; display: inline-block; border-bottom: 3px solid currentColor; cursor: pointer; white-space: nowrap; }
+.tog.do { color: var(--yes); } .tog.dont { color: var(--no); }
 .tog .chev { font-size: .55em; vertical-align: .45em; margin-left: .15em; }
 .tog select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; font: inherit; }
 .tog:has(select:focus-visible) { border-bottom-color: var(--yes); }
-.answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
-.card { border: 2px solid var(--line); border-radius: 12px; overflow: hidden; }
+.card { border: 2px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
 .card .main { display: block; width: 100%; font: inherit; padding: 16px; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .card .main:hover:not(:disabled) { background: color-mix(in srgb, currentColor 5%, transparent); }
 .card .main:disabled { opacity: .5; cursor: default; }
 .card .main b { display: block; font-size: 28px; }
-.card.yes .main b { color: var(--yes); } .card.no .main b { color: var(--no); }
+.card.do .main b { color: var(--yes); } .card.dont .main b { color: var(--no); }
 .card .main small { color: var(--muted); font-size: 14px; }
 .qty { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
 .qty button { font: inherit; font-size: 18px; line-height: 1; width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
