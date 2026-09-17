@@ -21,7 +21,7 @@ export type Tape = { trade_id: string; instrument_name: string; timestamp: numbe
 /** Recent option fills, taker side only — the side that had the opinion. */
 export async function recentOpines(): Promise<Tape[]> {
   await ready
-  const r: any = await publicClient.marketData.getPublicTradeHistory({ instrumentType: 'option', pageSize: 60 })
+  const r: any = await publicClient.marketData.getPublicTradeHistory({ instrumentType: 'option', pageSize: 500 })
   return (r.trades as Tape[]).filter((t) => t.liquidity_role === 'taker')
 }
 

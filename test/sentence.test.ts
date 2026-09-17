@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildMenu, pick, resolve, expiryLabel, parseInstrument, type Instrument } from '../src/sentence.ts'
+import { buildMenu, pick, resolve, expiryLabel, parseInstrument, topOpinions, type Instrument } from '../src/sentence.ts'
 
 const inst = (name: string, active = true): Instrument => {
   const [cur, ymd, strike, type] = name.split('-')
@@ -44,4 +44,16 @@ test('parseInstrument round-trips a Derive option name', () => {
   const p = parseInstrument('ETH-20270326-3000-P')
   assert.equal(p.currency, 'ETH'); assert.equal(p.strike, 3000); assert.equal(p.side, 'below')
   assert.equal(p.expiry, inst('ETH-20270326-3000-P').option_details.expiry)
+})
+
+test('topOpinions ranks by distinct people, then contracts', () => {
+  const t = (i: string, d: 'buy' | 'sell', w: string, a: string, ts: number) => ({ instrument_name: i, direction: d, wallet: w, trade_amount: a, timestamp: ts })
+  const tape = [
+    t('A', 'buy', '0x1', '10', 1), t('A', 'buy', '0x1', '10', 2),          // one whale, 20 contracts
+    t('B', 'sell', '0x2', '1', 3), t('B', 'sell', '0x3', '1', 4),          // two people, 2 contracts
+    t('C', 'buy', '0x4', '5', 5),                                          // one person, 5
+  ]
+  const top = topOpinions(tape)
+  assert.deepEqual(top.map((x) => [x.latest.instrument_name, x.people, x.contracts]), [['B', 2, 2], ['A', 1, 20], ['C', 1, 5]])
+  assert.equal(top[1].latest.timestamp, 2) // latest trade of the group
 })

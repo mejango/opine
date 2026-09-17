@@ -3,7 +3,7 @@ import type { DeriveClient } from '@derivexyz/derive-ts'
 import type { Address, WalletClient } from 'viem'
 import { usePrivy, useWallets, useLogin } from '@privy-io/react-auth'
 import { useWho } from './who'
-import { buildMenu, expiryLabel, instrumentFor, parseInstrument, pick, resolve, type Instrument, type Menu, type Sentence, type Ticker } from './sentence'
+import { buildMenu, expiryLabel, instrumentFor, parseInstrument, pick, resolve, topOpinions, type Instrument, type Menu, type Sentence, type Ticker } from './sentence'
 import * as d from './derive'
 import { payoff, stats, type Leg } from './payoff'
 
@@ -429,12 +429,25 @@ export default function App() {
       </dialog>
 
       <nav className="tabs" role="tablist">
-        <button role="tab" aria-selected={tab === 'latest'} onClick={() => setTab('latest')}>Latest opinions</button>
+        <button role="tab" aria-selected={tab === 'latest'} onClick={() => setTab('latest')}>Opinions</button>
         <button role="tab" aria-selected={tab === 'mine'} onClick={() => setTab('mine')}>Your opinions</button>
       </nav>
       <div className={`cols ${tab}`}>
       {feed.length > 0 && (
         <section className="feed">
+          <h2>Top opinions</h2>
+          <ul className="top">
+            {topOpinions(feed).map(({ latest: t, people, contracts }) => {
+              const p = parseInstrument(t.instrument_name)
+              return (
+                <li key={`${t.instrument_name}${t.direction}`}>
+                  <p>{t.direction === 'buy' ? 'Thinks' : "Doesn't think"} {p.currency} will be {p.side} ${p.strike.toLocaleString()}<br />by {expiryLabel(p.expiry)}.</p>
+                  <small>{people} {people === 1 ? 'person' : 'people'}, {contracts} contract{contracts === 1 ? '' : 's'}</small>
+                  <footer><button className="text" onClick={() => copy(t)}>Copy trade</button></footer>
+                </li>
+              )
+            })}
+          </ul>
           <h2>Latest opinions</h2>
           <ul>
             {feed.map((t) => {
