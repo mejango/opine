@@ -510,12 +510,16 @@ export default function App() {
         <section className="feed">
           <h2>Top opinions</h2>
           <ul className="top">
-            {topOpinions(feed).map(({ latest: t, people, contracts }) => {
+            {topOpinions(feed).map(({ latest: t, people, contracts, dollars }) => {
               const p = parseInstrument(t.instrument_name)
               return (
                 <li key={`${t.instrument_name}${t.direction}`}>
+                  <header>
+                    <b>{people} {people === 1 ? 'person' : 'people'}</b>
+                    <span>${dollars.toLocaleString()} behind it</span>
+                  </header>
                   <p>{t.direction === 'buy' ? 'Thinks' : "Doesn't think"} {p.currency} will be {p.side} ${p.strike.toLocaleString()}<br />by {expiryLabel(p.expiry)}.</p>
-                  <small>{people} {people === 1 ? 'person' : 'people'}, {contracts} contract{contracts === 1 ? '' : 's'}</small>
+                  <small>{contracts} contract{contracts === 1 ? '' : 's'}</small>
                   <footer><button className="text" onClick={() => copy(t)}>Copy trade</button></footer>
                 </li>
               )

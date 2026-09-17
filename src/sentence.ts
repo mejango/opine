@@ -84,18 +84,19 @@ export function parseInstrument(name: string): Sentence & { type: 'C' | 'P' } {
 }
 
 /** Most-held opinions in a slice of the tape: same instrument + direction, ranked by distinct wallets, then contracts. */
-export function topOpinions<T extends { instrument_name: string; direction: 'buy' | 'sell'; wallet: string; trade_amount: string; timestamp: number }>(tape: T[], n = 3) {
-  const groups = new Map<string, { latest: T; wallets: Set<string>; contracts: number }>()
+export function topOpinions<T extends { instrument_name: string; direction: 'buy' | 'sell'; wallet: string; trade_amount: string; trade_price: string; timestamp: number }>(tape: T[], n = 3) {
+  const groups = new Map<string, { latest: T; wallets: Set<string>; contracts: number; dollars: number }>()
   for (const t of tape) {
     const k = `${t.instrument_name}:${t.direction}`
-    const g = groups.get(k) ?? { latest: t, wallets: new Set<string>(), contracts: 0 }
+    const g = groups.get(k) ?? { latest: t, wallets: new Set<string>(), contracts: 0, dollars: 0 }
     g.wallets.add(t.wallet.toLowerCase())
     g.contracts += Number(t.trade_amount)
+    g.dollars += Number(t.trade_amount) * Number(t.trade_price) // premium that changed hands
     if (t.timestamp > g.latest.timestamp) g.latest = t
     groups.set(k, g)
   }
   return [...groups.values()]
-    .map((g) => ({ latest: g.latest, people: g.wallets.size, contracts: Math.round(g.contracts * 100) / 100 }))
+    .map((g) => ({ latest: g.latest, people: g.wallets.size, contracts: Math.round(g.contracts * 100) / 100, dollars: Math.round(g.dollars) }))
     .sort((a, b) => b.people - a.people || b.contracts - a.contracts)
     .slice(0, n)
 }

@@ -102,6 +102,7 @@ dialog form.x button:hover:not(:disabled), dialog form.x button:focus-visible { 
 .feed li:nth-child(odd) { background: color-mix(in srgb, var(--fg) 4%, transparent); }
 .feed header { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12px; }
 .feed header b { font-weight: 500; font-family: ui-monospace, monospace; }
+.feed ul.top header b { font-family: inherit; }
 .feed li p { margin: 6px 0 2px; font-size: 17px; font-weight: 500; }
 .feed li small { display: block; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
 .feed footer { margin-top: 8px; }
