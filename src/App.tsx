@@ -164,9 +164,10 @@ export default function App() {
     if (!w) {
       if (!provider) {
         const found = await d.discoverWallets()
-        if (!found.length) throw new Error('No wallet found in this browser. Install one (MetaMask, Rabby, Coinbase Wallet…) and reload.')
-        if (found.length > 1) { setWallets(found); setStep({ kind: 'choose' }); return } // let them pick
-        provider = found[0].provider
+        const installed = found.filter((f) => f.provider)
+        if (!installed.length) { setWallets(found); setStep({ kind: 'choose' }); return } // nothing installed: show what works
+        if (installed.length > 1) { setWallets(found); setStep({ kind: 'choose' }); return } // let them pick
+        provider = installed[0].provider
       }
       w = await d.connectWallet(provider)
       setWallet(w)
@@ -302,9 +303,11 @@ export default function App() {
         {step?.kind === 'choose' && (
           <div className="wallets">
             <p>Connect with</p>
-            {wallets.map((w) => (
-              <button key={w.name} onClick={() => go(w.provider)}>{w.icon && <img src={w.icon} alt="" />}{w.name}</button>
-            ))}
+            <div>
+              {wallets.map((w) => w.provider
+                ? <button key={w.name} title={w.name} aria-label={w.name} onClick={() => go(w.provider)}>{w.icon ? <img src={w.icon} alt="" /> : <span>{w.name[0]}</span>}</button>
+                : <a key={w.name} className="missing" title={`${w.name} — not installed`} aria-label={`${w.name}, not installed`} href={w.url} target="_blank" rel="noreferrer"><span>{w.name[0]}</span></a>)}
+            </div>
           </div>
         )}
         {step?.kind === 'signing' && <p>Sign once to authorise a 30-day trading key. Trades after this need no signature.</p>}
@@ -336,9 +339,11 @@ export default function App() {
                     <b>{t.wallet.slice(0, 6)}…{t.wallet.slice(-4)}</b>
                     <time dateTime={new Date(t.timestamp).toISOString()}>{ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.round(ago / 60)}h` : `${Math.round(ago / 1440)}d`} ago</time>
                   </header>
-                  <p>{t.direction === 'buy' ? 'Does' : "Doesn't"} think {p.currency} will be {p.side} ${p.strike.toLocaleString()}<br />by {expiryLabel(p.expiry)}.</p>
+                  <p>{t.direction === 'buy' ? 'Thinks' : "Doesn't think"} {p.currency} will be {p.side} ${p.strike.toLocaleString()}<br />by {expiryLabel(p.expiry)}.</p>
                   <footer>
-                    <button className="text" onClick={() => copy(t)}>Copy</button>
+                    <button className="text" onClick={() => copy(t)} title="Copy this opinion" aria-label="Copy this opinion">
+                      <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="5.5" y="5.5" width="9" height="9" /><path d="M10.5 5.5v-4h-9v9h4" /></svg>
+                    </button>
                     <small>{Number(t.trade_amount)} contract{Number(t.trade_amount) === 1 ? '' : 's'} at ${Number(t.trade_price).toFixed(2)}</small>
                   </footer>
                 </li>

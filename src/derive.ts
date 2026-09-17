@@ -36,22 +36,34 @@ export async function allOptions() {
 // ---- wallet -------------------------------------------------------------
 declare global { interface Window { ethereum?: any } }
 
-export type WalletOption = { name: string; icon?: string; provider: any }
+export type WalletOption = { name: string; icon?: string; provider?: any; url?: string }
+
+// Shown even when not installed, so people know what works here. rdns is the EIP-6963 id.
+// ponytail: Safe has no extension — needs WalletConnect. Add @walletconnect/ethereum-provider + project id when wanted.
+export const KNOWN_WALLETS = [
+  { rdns: 'io.metamask', name: 'MetaMask', url: 'https://metamask.io' },
+  { rdns: 'com.coinbase.wallet', name: 'Coinbase Wallet', url: 'https://www.coinbase.com/wallet' },
+  { rdns: 'io.rabby', name: 'Rabby', url: 'https://rabby.io' },
+  { rdns: 'app.phantom', name: 'Phantom', url: 'https://phantom.com' },
+  { rdns: 'com.ambire.wallet', name: 'Ambire', url: 'https://www.ambire.com' },
+  { rdns: 'global.safe', name: 'Safe', url: 'https://app.safe.global' },
+]
 
 /** Installed wallets via EIP-6963 announcements; falls back to the legacy window.ethereum. */
 export function discoverWallets(): Promise<WalletOption[]> {
   return new Promise((resolve) => {
-    const found: WalletOption[] = []
+    const found: (WalletOption & { rdns?: string })[] = []
     const on = (e: any) => {
       const { info, provider } = e.detail
-      if (!found.some((w) => w.name === info.name)) found.push({ name: info.name, icon: info.icon, provider })
+      if (!found.some((w) => w.name === info.name)) found.push({ name: info.name, icon: info.icon, provider, rdns: info.rdns })
     }
     window.addEventListener('eip6963:announceProvider', on)
     window.dispatchEvent(new Event('eip6963:requestProvider'))
     setTimeout(() => {
       window.removeEventListener('eip6963:announceProvider', on)
       if (!found.length && window.ethereum) found.push({ name: 'Browser wallet', provider: window.ethereum })
-      resolve(found)
+      const missing = KNOWN_WALLETS.filter((k) => !found.some((f) => f.rdns === k.rdns || f.name.startsWith(k.name)))
+      resolve([...found, ...missing])
     }, 200)
   })
 }

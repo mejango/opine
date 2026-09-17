@@ -35,11 +35,14 @@ dialog button { font: inherit; font-size: 15px; padding: 6px 12px; border: 1px s
 dialog button.text { border: 0; padding: 6px 8px; color: var(--muted); }
 dialog button.text:hover:not(:disabled), dialog button.text:focus-visible { color: var(--fg); background: color-mix(in srgb, currentColor 8%, transparent); outline: none; }
 dialog button:disabled { opacity: .4; cursor: default; }
-.wallets { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
-.wallets p { margin: 0 0 4px; color: var(--muted); }
-.wallets button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; }
-.wallets button:hover { background: color-mix(in srgb, currentColor 6%, transparent); }
-.wallets img { width: 22px; height: 22px; }
+.wallets { margin-bottom: 12px; }
+.wallets p { margin: 0 0 8px; color: var(--muted); }
+.wallets div { display: flex; gap: 8px; flex-wrap: wrap; }
+.wallets button, .wallets a { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); background: transparent; color: inherit; cursor: pointer; text-decoration: none; }
+.wallets button:hover, .wallets button:focus-visible { border-color: var(--fg); outline: none; }
+.wallets img { width: 28px; height: 28px; }
+.wallets span { font-weight: 600; font-size: 16px; }
+.wallets a.missing { opacity: .35; } .wallets a.missing:hover { opacity: .7; }
 dialog form { margin-top: 12px; text-align: right; }
 /* Ghost loading: same layout, shimmering blanks. */
 .ghost i, i.ghost { display: inline-block; height: .8em; vertical-align: -.1em; background: linear-gradient(90deg, var(--line) 25%, color-mix(in srgb, var(--line) 40%, var(--bg)) 50%, var(--line) 75%); background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite; }
@@ -71,5 +74,5 @@ dialog form { margin-top: 12px; text-align: right; }
 .feed header, .feed footer { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 12px; }
 .feed header b { font-weight: 500; font-family: ui-monospace, monospace; }
 .feed li p { margin: 6px 0; font-size: 17px; font-weight: 500; }
-.feed button.text { font: inherit; font-size: 14px; padding: 4px 0; border: 0; background: transparent; color: var(--teal); cursor: pointer; }
-.feed button.text:hover, .feed button.text:focus-visible { text-decoration: underline; outline: none; }
+.feed button.text { display: grid; place-items: center; width: 28px; height: 28px; margin-left: -6px; padding: 0; border: 0; background: transparent; color: var(--teal); cursor: pointer; }
+.feed button.text:hover, .feed button.text:focus-visible { background: color-mix(in srgb, currentColor 12%, transparent); outline: none; }
