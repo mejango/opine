@@ -171,9 +171,9 @@ export async function tradingClient(owner: Address, sessionKey: string) {
   return c
 }
 
-/** Market order; the limit is only the slippage cap Derive requires (quote ± 1 %). */
-export function placeOpinion(c: DeriveClient, p: { subaccountId: number; instrument: string; direction: 'buy' | 'sell'; price: number; amount: number; tickSize: number }) {
-  const raw = p.direction === 'buy' ? p.price * 1.01 : p.price * 0.99
+/** Market order (limit = the slippage cap Derive requires, quote ± 1 %), or a GTC limit at the named price. */
+export function placeOpinion(c: DeriveClient, p: { subaccountId: number; instrument: string; direction: 'buy' | 'sell'; price: number; amount: number; tickSize: number; limit?: number }) {
+  const raw = p.limit ?? (p.direction === 'buy' ? p.price * 1.01 : p.price * 0.99)
   const limitPrice = (Math.round(raw / p.tickSize) * p.tickSize).toFixed(Math.max(0, -Math.floor(Math.log10(p.tickSize))))
   return c.orders.place({
     subaccountId: p.subaccountId,
@@ -181,8 +181,8 @@ export function placeOpinion(c: DeriveClient, p: { subaccountId: number; instrum
     direction: p.direction,
     amount: p.amount,
     limitPrice,
-    orderType: 'market',
-    timeInForce: 'ioc',
+    orderType: p.limit ? 'limit' : 'market',
+    timeInForce: p.limit ? 'gtc' : 'ioc',
     label: 'opine',
   }) as Promise<any>
 }

@@ -137,6 +137,7 @@ export default function App() {
   const [stance, setStance] = useState<'do' | 'dont'>('do') // do = buy the option, don't = sell it
   const [ticker, setTicker] = useState<Ticker>()
   const [amount, setAmount] = useState('1')
+  const [limit, setLimit] = useState<string>() // set = user named a price → GTC limit instead of market
   const [wallet, setWallet] = useState<{ wallet: WalletClient; address: Address }>()
   const [subaccountId, setSubaccountId] = useState<number>()
   const [depositAddr, setDepositAddr] = useState<string>()
@@ -145,7 +146,7 @@ export default function App() {
   // The modal: what the click is doing right now.
   const [step, setStep] = useState<{ kind: 'connecting' | 'choose' | 'deposit' | 'signing' | 'placing' | 'done' | 'error'; text?: string }>()
   const [wallets, setWallets] = useState<d.WalletOption[]>([])
-  const [order, setOrder] = useState<{ instrument: string; direction: 'buy' | 'sell'; price: number; amount: number; sentence: Sentence; stance: 'do' | 'dont' }>()
+  const [order, setOrder] = useState<{ instrument: string; direction: 'buy' | 'sell'; price: number; amount: number; sentence: Sentence; stance: 'do' | 'dont'; limit?: number }>()
   const dialog = useRef<HTMLDialogElement>(null)
   const trader = useRef<DeriveClient>()
   const [feed, setFeed] = useState<d.Tape[]>([])
@@ -244,7 +245,7 @@ export default function App() {
   /** The whole flow behind one click: connect, onboard if needed, sign once, place, report. */
   const go = async (provider?: any) => {
     if (!menu || !s || !ticker || !inst) return
-    const o = { ...resolve(menu, s, stance === 'do' ? 'yes' : 'no', ticker)!, amount: Number(amount), sentence: { ...s }, stance }
+    const o = { ...resolve(menu, s, stance === 'do' ? 'yes' : 'no', ticker)!, amount: Number(amount), sentence: { ...s }, stance, limit: limit ? Number(limit) : undefined }
     setOrder(o)
     if (!dialog.current?.open) dialog.current?.showModal()
     try {
@@ -255,8 +256,10 @@ export default function App() {
       const res = await d.placeOpinion(c, { subaccountId: acct.id, ...o, tickSize: Number(inst.tick_size ?? '0.1') })
       const filled = Number(res.order?.filled_amount ?? 0)
       setStep(filled === 0
-        ? { kind: 'error', text: 'Nothing filled — the book moved. Try again.' }
-        : { kind: 'done', text: `${o.direction === 'buy' ? 'Bought' : 'Sold'} ${filled} at ~$${res.order.average_price ?? o.price}` })
+        ? o.limit
+          ? { kind: 'done', text: `Resting on the book at $${o.limit.toFixed(2)} until it fills. Manage it at ${d.NETWORK === 'mainnet' ? 'app' : 'testnet.app'}.derive.xyz.` }
+          : { kind: 'error', text: 'Nothing filled — the book moved. Try again.' }
+        : { kind: 'done', text: `${o.direction === 'buy' ? 'Bought' : 'Sold'} ${filled} at ~$${res.order.average_price ?? o.price}${filled < o.amount ? `, the rest rests on the book` : ''}` })
       await refreshPositions(c, acct.id)
     } catch (e: any) {
       setStep({ kind: 'error', text: e?.details || e?.shortMessage || e?.message || String(e) }) // viem errors carry a tidy `details`
@@ -295,7 +298,8 @@ export default function App() {
     if (patch.currency) patch.strike = await d.spot(patch.currency) // new coin, new price scale
     setS((cur) => pick(menu, { ...cur!, ...patch }))
   }
-  const px = ticker ? Number(stance === 'do' ? ticker.a : ticker.b) : undefined
+  const quote = ticker ? Number(stance === 'do' ? ticker.a : ticker.b) : undefined
+  const px = limit ? Number(limit) || undefined : quote
   const n = Number(amount) || 0
   const minAmt = Number(inst?.minimum_amount ?? 0.1), stepAmt = Number(inst?.amount_step ?? 0.01)
   const step_ = (dir: 1 | -1) => setAmount(String(Math.max(minAmt, Math.round((n + dir) * 100) / 100)))
@@ -324,8 +328,16 @@ export default function App() {
           <button onClick={() => step_(1)} aria-label="more">+</button>
         </div>
         <button className="main" disabled={busy || !px} onClick={() => go()}>
-          <b>{stance === 'do' ? 'Pay' : 'Receive'} {px ? usd(px) : <i className="ghost" style={{ width: '4em' }} />}</b>
+          <b>{limit ? (stance === 'do' ? 'Bid' : 'Offer') : stance === 'do' ? 'Pay' : 'Receive'} {px ? usd(px) : <i className="ghost" style={{ width: '4em' }} />}</b>
         </button>
+        <div className="limit">
+          {limit == null
+            ? <button className="text" onClick={() => setLimit(quote?.toFixed(2) ?? '')}>or name your price</button>
+            : <label>
+                $<input type="number" min={0} step={inst?.tick_size ?? 0.1} value={limit} onChange={(e) => setLimit(e.target.value)} autoFocus /> each, rests until filled
+                <button className="text" onClick={() => setLimit(undefined)}>use market</button>
+              </label>}
+        </div>
       </div>
 
       <dialog ref={dialog} onClose={() => setStep(undefined)}>
@@ -334,14 +346,14 @@ export default function App() {
           <p className="order">
             <b>You {order.stance === 'do' ? 'think' : "don't think"} {order.sentence.currency} will be {order.sentence.side} ${order.sentence.strike.toLocaleString()}<br />by {expiryLabel(order.sentence.expiry)}.</b>
             <small>
-              {order.direction === 'buy' ? 'Buying' : 'Selling'} {order.amount} {order.sentence.currency} {order.sentence.side === 'above' ? 'call' : 'put'}{order.amount === 1 ? '' : 's'} at ${order.price.toFixed(2)} each on Derive {d.NETWORK}
+              {order.limit ? (order.direction === 'buy' ? 'Bidding' : 'Offering') : order.direction === 'buy' ? 'Buying' : 'Selling'} {order.amount} {order.sentence.currency} {order.sentence.side === 'above' ? 'call' : 'put'}{order.amount === 1 ? '' : 's'} at ${(order.limit ?? order.price).toFixed(2)} each{order.limit ? ' (limit)' : ''} on Derive {d.NETWORK}
               {wallet ? ` from ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''}{subaccountId != null ? ` (subaccount ${subaccountId})` : ''}.
             </small>
           </p>
         )}
         {order && (
           <Payoff currency={order.sentence.currency} spot={ticker?.I ? Number(ticker.I) : undefined}
-            leg={{ type: order.sentence.side === 'above' ? 'C' : 'P', strike: order.sentence.strike, premium: order.price, n: order.amount, long: order.direction === 'buy' }} />
+            leg={{ type: order.sentence.side === 'above' ? 'C' : 'P', strike: order.sentence.strike, premium: order.limit ?? order.price, n: order.amount, long: order.direction === 'buy' }} />
         )}
         {step?.kind === 'connecting' && <p>Connecting wallet…</p>}
         {step?.kind === 'choose' && (
