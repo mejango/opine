@@ -1,8 +1,9 @@
 # Build the static site, then serve it (plus per-link unfurl images) with a small Node server.
 FROM node:22-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json package-lock.json .npmrc ./
+# ponytail: npm ci rejects this lockfile (written under legacy-peer-deps); install honours it fine
+RUN npm install --no-audit --no-fund
 COPY . .
 ARG VITE_DERIVE_NETWORK=testnet
 ARG VITE_REFERRAL_CODE
