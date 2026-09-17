@@ -148,7 +148,7 @@ export async function tradingClient(owner: Address, sessionKey: string) {
 }
 
 // Opine's cut: a builder fee Derive collects on the order and credits to our referral code. Per contract, in USDC.
-export const OPINE_FEE_RATE = 0.01 // of the option premium
+export const OPINE_FEE_RATE = 0.005 // of the option premium
 export const opineFee = (premium: number) => Math.round(premium * OPINE_FEE_RATE * 100) / 100
 const REFERRAL_CODE = import.meta.env.VITE_REFERRAL_CODE as string | undefined
 
