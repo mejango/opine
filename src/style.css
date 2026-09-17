@@ -19,9 +19,8 @@ h1 { font-size: 36px; letter-spacing: .12em; text-transform: uppercase; color: v
 .limit button.text { font: inherit; border: 0; padding: 0; background: none; color: var(--muted); cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--muted) 40%, transparent); text-underline-offset: 3px; }
 .limit button.text:hover { color: var(--fg); text-decoration-color: currentColor; }
 .limit label button.text { margin-left: .3em; display: inline; vertical-align: baseline; line-height: inherit; }
-.limit input { width: 5.5em; font: inherit; color: var(--fg); background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 2px 4px; }
+.limit input { font: inherit; font-variant-numeric: tabular-nums; color: var(--fg); background: transparent; border: 0; border-bottom: 1px solid var(--line); padding: 2px 0; margin: 0 2px; }
 .limit input:focus { outline: none; border-bottom-color: var(--teal); }
-.limit input { -moz-appearance: textfield; } .limit input::-webkit-outer-spin-button, .limit input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .card .main { font: inherit; padding: 8px 14px; border: 0; background: var(--teal); color: #111; cursor: pointer; text-align: left; }
 .card .main:hover:not(:disabled) { background: color-mix(in srgb, var(--teal) 85%, #fff); }
 .card .main:disabled { opacity: .5; cursor: default; }
