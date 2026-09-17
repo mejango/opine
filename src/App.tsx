@@ -127,6 +127,8 @@ export default function App() {
   const ask = ticker && Number(ticker.a), bid = ticker && Number(ticker.b)
   const n = Number(amount) || 0
   const cta = !wallet ? 'Connect wallet' : stage === 'noAccount' ? 'Waiting for deposit…' : undefined
+  const minAmt = Number(inst?.minimum_amount ?? 0.1), stepAmt = Number(inst?.amount_step ?? 0.01)
+  const step = (dir: 1 | -1) => setAmount(String(Math.max(minAmt, Math.round((n + dir) * 100) / 100)))
   const usd = (x?: number) => (x ? `$${(x * n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—')
 
   return (
@@ -143,17 +145,23 @@ export default function App() {
       </p>
 
       <div className="answers">
-        <button className="yes" disabled={busy || !ask} onClick={() => answer(true)}>
-          <b>Yes {usd(ask)}</b>
-          <small>{cta ?? `Buy ${n} ${inst?.instrument_name} · pay $${ask?.toFixed(2)} each`}</small>
-        </button>
-        <button className="no" disabled={busy || !bid} onClick={() => answer(false)}>
-          <b>No {usd(bid)}</b>
-          <small>{cta ?? `Sell ${n} ${inst?.instrument_name} · receive $${bid?.toFixed(2)} each`}</small>
-        </button>
+        {([['yes', 'Yes', ask, `Buy ${n} ${inst?.instrument_name} · pay $${ask?.toFixed(2)} each`],
+           ['no', 'No', bid, `Sell ${n} ${inst?.instrument_name} · receive $${bid?.toFixed(2)} each`]] as const).map(([k, word, px, sub]) => (
+          <div className={`card ${k}`} key={k}>
+            <button className="main" disabled={busy || !px} onClick={() => answer(k === 'yes')}>
+              <b>{word} {usd(px)}</b>
+              <small>{cta ?? sub}</small>
+            </button>
+            <div className="qty">
+              <button onClick={() => step(-1)} aria-label="fewer">−</button>
+              <input type="number" min={minAmt} step={stepAmt} value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <button onClick={() => step(1)} aria-label="more">+</button>
+              <span>contract{n === 1 ? '' : 's'}</span>
+            </div>
+          </div>
+        ))}
       </div>
       <div className="row">
-        <label>Contracts <input type="number" min={inst?.minimum_amount ?? 0.1} step={inst?.amount_step ?? 0.01} value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
         <span>{d.NETWORK}{wallet ? ` · ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''}{subaccountId != null ? ` · #${subaccountId}` : ''}</span>
       </div>
 
