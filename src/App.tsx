@@ -514,10 +514,7 @@ export default function App() {
               const p = parseInstrument(t.instrument_name)
               return (
                 <li key={`${t.instrument_name}${t.direction}`}>
-                  <header>
-                    <b>{people} {people === 1 ? 'person' : 'people'}</b>
-                    <span>${dollars.toLocaleString()} behind it</span>
-                  </header>
+                  <header><b>${dollars.toLocaleString()} by {people} {people === 1 ? 'person' : 'people'}</b></header>
                   <p>{t.direction === 'buy' ? 'Thinks' : "Doesn't think"} {p.currency} will be {p.side} ${p.strike.toLocaleString()}<br />by {expiryLabel(p.expiry)}.</p>
                   <small>{contracts} contract{contracts === 1 ? '' : 's'}</small>
                   <footer><button className="text" onClick={() => copy(t)}>Copy trade</button></footer>
