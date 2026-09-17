@@ -5,6 +5,8 @@ export interface Instrument {
   base_currency: string
   is_active: boolean
   tick_size?: string
+  base_fee?: string
+  taker_fee_rate?: string
   minimum_amount?: string
   amount_step?: string
   option_details: { expiry: number; strike: string; option_type: 'C' | 'P' }

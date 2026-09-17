@@ -270,8 +270,10 @@ export default function App() {
       if (!acct) return
       const c = await ensureTrader(acct.w)
       setStep({ kind: 'placing' })
-      const tickSize = Number((override ? menu.byName.get(o.instrument)?.tick_size : inst?.tick_size) ?? '0.1')
-      const res = await d.placeOpinion(c, { subaccountId: acct.id, ...o, tickSize })
+      const i = override ? menu.byName.get(o.instrument) : inst
+      const tickSize = Number(i?.tick_size ?? '0.1')
+      const takerCost = Number(i?.base_fee ?? 0.5) + Number(i?.taker_fee_rate ?? 0.0003) * Math.max(Number(ticker?.I ?? 0), o.limit ?? o.price)
+      const res = await d.placeOpinion(c, { subaccountId: acct.id, ...o, tickSize, takerCost })
       const filled = Number(res.order?.filled_amount ?? 0)
       setStep(filled === 0
         ? o.limit
@@ -373,6 +375,18 @@ export default function App() {
           <Payoff currency={order.sentence.currency} spot={ticker?.I ? Number(ticker.I) : undefined}
             leg={{ type: order.sentence.side === 'above' ? 'C' : 'P', strike: order.sentence.strike, premium: order.limit ?? order.price, n: order.amount, long: order.direction === 'buy' }} />
         )}
+        {order && (() => {
+          const i = menu.byName.get(order.instrument)
+          const each = order.limit ?? order.price
+          const derive = i ? Number(i.base_fee ?? 0) + Number(i.taker_fee_rate ?? 0) * Number(ticker?.I ?? 0) : undefined
+          return (
+            <details className="fees">
+              <summary>Fees</summary>
+              <p>Opine: ${d.opineFee(each).toFixed(2)} per contract ({d.OPINE_FEE_RATE * 100}% of the premium), collected by Derive with the trade.</p>
+              {derive != null && <p>Derive: up to ${derive.toFixed(2)} per contract (taker rate; less if your offer rests and gets filled).</p>}
+            </details>
+          )
+        })()}
         {step?.kind === 'connecting' && <p>Connecting wallet…</p>}
         {step?.kind === 'choose' && (
           <div className="wallets">

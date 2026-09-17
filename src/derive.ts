@@ -183,11 +183,19 @@ export async function tradingClient(owner: Address, sessionKey: string) {
   return c
 }
 
+// Opine's cut: a builder fee Derive collects on the order and credits to our referral code. Per contract, in USDC.
+export const OPINE_FEE_RATE = 0.01 // of the option premium
+export const opineFee = (premium: number) => Math.round(premium * OPINE_FEE_RATE * 100) / 100
+const REFERRAL_CODE = import.meta.env.VITE_REFERRAL_CODE as string | undefined
+
 /** Market order (limit = the slippage cap Derive requires, quote ± 1 %), or a GTC limit at the named price. */
-export function placeOpinion(c: DeriveClient, p: { subaccountId: number; instrument: string; direction: 'buy' | 'sell'; price: number; amount: number; tickSize: number; limit?: number }) {
+export async function placeOpinion(c: DeriveClient, p: { subaccountId: number; instrument: string; direction: 'buy' | 'sell'; price: number; amount: number; tickSize: number; limit?: number; takerCost: number }) {
   const raw = p.limit ?? (p.direction === 'buy' ? p.price * 1.01 : p.price * 0.99)
   const limitPrice = (Math.round(raw / p.tickSize) * p.tickSize).toFixed(Math.max(0, -Math.floor(Math.log10(p.tickSize))))
+  const fee = opineFee(p.limit ?? p.price)
   return c.orders.place({
+    // ceiling only — the exchange charges its real rate; must cover our extra fee too
+    maxFee: (p.takerCost * 3 + fee).toFixed(6),
     subaccountId: p.subaccountId,
     instrumentName: p.instrument,
     direction: p.direction,
@@ -196,5 +204,7 @@ export function placeOpinion(c: DeriveClient, p: { subaccountId: number; instrum
     orderType: p.limit ? 'limit' : 'market',
     timeInForce: p.limit ? 'gtc' : 'ioc',
     label: 'opine',
+    extraFee: fee,
+    referralCode: REFERRAL_CODE,
   }) as Promise<any>
 }

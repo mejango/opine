@@ -118,3 +118,8 @@ dialog form.x button:hover:not(:disabled), dialog form.x button:focus-visible { 
 .mine footer { display: flex; gap: 16px; margin-top: 8px; }
 .mine footer button.text { font: inherit; font-size: 12px; border: 0; padding: 0; background: none; color: var(--muted); cursor: pointer; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--muted) 40%, transparent); text-underline-offset: 3px; }
 .mine footer button.text:hover { color: var(--fg); text-decoration-color: currentColor; }
+dialog details.fees { margin-top: 12px; font-size: 12px; color: var(--muted); }
+dialog details.fees summary { cursor: pointer; list-style: none; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--muted) 40%, transparent); text-underline-offset: 3px; width: max-content; }
+dialog details.fees summary::-webkit-details-marker { display: none; }
+dialog details.fees summary:hover { color: var(--fg); }
+dialog details.fees p { margin: 6px 0 0; }
