@@ -101,8 +101,10 @@ export default function App() {
   const [wallet, setWallet] = useState<{ wallet: WalletClient; address: Address }>()
   const [subaccountId, setSubaccountId] = useState<number>()
   const [depositAddr, setDepositAddr] = useState<{ address: string; token: string }>()
+  const params = new URLSearchParams(location.search)
   // ?demo shows a sample position so the column can be styled without a funded account.
-  const demo = new URLSearchParams(location.search).has('demo')
+  const demo = params.has('demo')
+  const [shared, setShared] = useState(false)
   const [positions, setPositions] = useState<any[]>(demo ? [
     { instrument_name: 'ETH-20261127-2500-C', amount: '2', average_price: '213.90', mark_price: '231.40', unrealized_pnl: '35.00' },
     { instrument_name: 'BTC-20261225-100000-P', amount: '-0.5', average_price: '4120.00', mark_price: '4388.50', unrealized_pnl: '-134.25' },
@@ -131,14 +133,42 @@ export default function App() {
     d.allOptions()
       .then(async (instruments) => {
         const m = buildMenu(instruments)
-        const currency = m.currencies.includes('ETH') ? 'ETH' : m.currencies[0]
         setMenu(m)
-        // Open on a round bet: near-the-money strike, ~2 months out.
-        setS(pick(m, { currency, expiry: Date.now() / 1000 + 60 * 86400, strike: await d.spot(currency), side: 'above' }))
+        // A shared link names the instrument; otherwise open on a round bet: near-the-money, ~2 months out.
+        const linked = params.get('i') && m.byName.has(params.get('i')!) ? parseInstrument(params.get('i')!) : undefined
+        if (linked) {
+          setS(pick(m, linked))
+          if (params.get('s') === 'dont') setStance('dont')
+          if (params.get('n')) setAmount(params.get('n')!)
+          if (params.get('p')) setLimit(params.get('p')!)
+        } else {
+          const currency = m.currencies.includes('ETH') ? 'ETH' : m.currencies[0]
+          setS(pick(m, { currency, expiry: Date.now() / 1000 + 60 * 86400, strike: await d.spot(currency), side: 'above' }))
+        }
       })
       .catch((e) => setLoadError(String(e)))
   }, [])
   const inst = menu && s ? instrumentFor(menu, s) : undefined
+
+  // The URL is the sentence: anyone can share what's on screen.
+  useEffect(() => {
+    if (!inst) return
+    const q = new URLSearchParams()
+    q.set('i', inst.instrument_name)
+    if (stance === 'dont') q.set('s', 'dont')
+    if (amount !== '1') q.set('n', amount)
+    if (limit) q.set('p', limit)
+    if (demo) q.set('demo', '')
+    history.replaceState(null, '', `?${q.toString().replace(/=(&|$)/g, '$1')}`)
+  }, [inst?.instrument_name, stance, amount, limit])
+  const share = async () => {
+    const url = location.href
+    const text = `I ${stance === 'do' ? 'do' : "don't"} think ${s!.currency} will be ${s!.side} $${s!.strike.toLocaleString()} by ${expiryLabel(s!.expiry)}.`
+    if (navigator.share && /Mobi/.test(navigator.userAgent)) { await navigator.share({ text, url }).catch(() => {}); return }
+    await navigator.clipboard.writeText(url).catch(() => {})
+    setShared(true); setTimeout(() => setShared(false), 1500)
+  }
+
   useEffect(() => {
     if (!inst) return
     let live = true
@@ -327,6 +357,7 @@ export default function App() {
           <b>{limit ? 'Offer' : stance === 'do' ? 'Pay' : 'Receive'} {px ? usd(px) : <i className="ghost" style={{ width: '4em' }} />}</b>
         </button>
         <div className="limit">
+          <button className="text" onClick={share}>{shared ? 'Link copied.' : 'Share this opinion.'}</button>
           {limit == null
             ? <button className="text" onClick={() => setLimit(quote?.toFixed(2) ?? '')}>Or, name your price.</button>
             : <label>
