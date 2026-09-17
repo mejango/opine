@@ -69,6 +69,7 @@ dialog form.x button:hover:not(:disabled), dialog form.x button:focus-visible { 
 .payoff .spot { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
 .payoff .cross { stroke: var(--teal); stroke-width: 1; }
 .payoff .dot { fill: var(--teal); stroke: var(--bg); stroke-width: 2; }
+.payoff .spotdot { fill: var(--fg); stroke: var(--bg); stroke-width: 2; }
 .payoff .tick { fill: var(--muted); font-size: 11px; }
 .payoff .tip { fill: var(--fg); font-size: 12px; font-weight: 600; }
 /* Feed */

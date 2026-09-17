@@ -78,13 +78,19 @@ function Payoff({ leg, spot, currency }: { leg: Leg; spot?: number; currency: st
         {ticks.map((p) => <text key={p} x={x(p)} y={H - 6} className="tick" textAnchor="middle">{kfmt(p)}</text>)}
         {spot && spot > lo && spot < hi && <>
           <line x1={x(spot)} x2={x(spot)} y1={T} y2={H - B} className="spot" />
-          <text x={x(spot)} y={T + 8} className="tick" textAnchor={spot > leg.strike ? 'end' : 'start'} dx={spot > leg.strike ? -4 : 4}>{currency} {money(spot)}</text>
+          <text x={x(spot)} y={H - B - 4} className="tick" textAnchor={spot > leg.strike ? 'end' : 'start'} dx={spot > leg.strike ? -4 : 4}>{currency} now {money(spot)}</text>
         </>}
         <polyline points={pts} className="line" />
+        {spot && spot > lo && spot < hi && hp == null && <>
+          <circle cx={x(spot)} cy={y(payoff(leg, spot))} r={4} className="spotdot" />
+          <text x={x(spot)} y={y(payoff(leg, spot))} dy={payoff(leg, spot) >= 0 ? -10 : 18} className="tip" textAnchor={spot > leg.strike ? 'end' : 'start'} dx={spot > leg.strike ? -8 : 8}>
+            {payoff(leg, spot) < 0 ? '−' : '+'}{money(Math.abs(payoff(leg, spot)))} if it stayed here
+          </text>
+        </>}
         {hp != null && <>
           <line x1={x(hp)} x2={x(hp)} y1={T} y2={H - B} className="cross" />
           <circle cx={x(hp)} cy={y(payoff(leg, hp))} r={4} className="dot" />
-          <text x={x(hp)} y={H - B - 6} className="tip" textAnchor={hp > (lo + hi) / 2 ? 'end' : 'start'} dx={hp > (lo + hi) / 2 ? -6 : 6}>
+          <text x={x(hp)} y={T + 8} className="tip" textAnchor={hp > (lo + hi) / 2 ? 'end' : 'start'} dx={hp > (lo + hi) / 2 ? -6 : 6}>
             {currency} at {kfmt(hp)} → {payoff(leg, hp) < 0 ? '−' : '+'}{money(Math.abs(payoff(leg, hp)))}
           </text>
         </>}
