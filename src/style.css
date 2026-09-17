@@ -5,8 +5,10 @@ body { margin: 0; background: var(--bg); color: var(--fg); font: 18px/1.5 system
 main { max-width: 720px; margin: 0 auto; padding: 48px 16px; }
 h1 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin: 0 0 32px; }
 .sentence { font-size: clamp(28px, 5vw, 44px); line-height: 1.3; font-weight: 600; margin: 0 0 32px; }
-.sentence select { font: inherit; font-weight: inherit; color: inherit; background: transparent; border: 0; border-bottom: 3px solid currentColor; padding: 0 2px; cursor: pointer; max-width: 100%; }
-.sentence select:focus { outline: none; border-bottom-color: var(--yes); }
+.tog { position: relative; display: inline-block; border-bottom: 3px solid currentColor; cursor: pointer; white-space: nowrap; }
+.tog .chev { font-size: .55em; vertical-align: .45em; margin-left: .15em; }
+.tog select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; font: inherit; }
+.tog:has(select:focus-visible) { border-bottom-color: var(--yes); }
 .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
 .answers button { font: inherit; padding: 16px; border: 2px solid var(--line); border-radius: 12px; background: transparent; color: inherit; cursor: pointer; text-align: left; }
 .answers button:disabled { opacity: .5; cursor: default; }

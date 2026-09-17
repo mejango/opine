@@ -6,6 +6,19 @@ import * as d from './derive'
 
 type Stage = 'browsing' | 'noAccount' | 'ready'
 
+/** A word in the sentence that opens a native dropdown: visible label + text chevron, invisible <select> on top. */
+function Toggle({ value, options, onChange }: { value: string; options: [string, string][]; onChange: (v: string) => void }) {
+  const label = options.find(([v]) => v === value)?.[1] ?? value
+  return (
+    <span className="tog">
+      {label}<span className="chev">⌄</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
+        {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+      </select>
+    </span>
+  )
+}
+
 export default function App() {
   const [menu, setMenu] = useState<Menu>()
   const [s, setS] = useState<Sentence>()
@@ -121,20 +134,12 @@ export default function App() {
       <h1>Opine</h1>
       <p className="sentence">
         I think{' '}
-        <select value={s.currency} onChange={(e) => set({ currency: e.target.value })}>
-          {menu.currencies.map((c) => <option key={c}>{c}</option>)}
-        </select>{' '}
+        <Toggle value={s.currency} options={menu.currencies.map((c) => [c, c])} onChange={(v) => set({ currency: v })} />{' '}
         will be{' '}
-        <select value={s.side} onChange={(e) => set({ side: e.target.value as Sentence['side'] })}>
-          <option value="above">above</option><option value="below">below</option>
-        </select>{' '}
-        <select value={s.strike} onChange={(e) => set({ strike: Number(e.target.value) })}>
-          {menu.strikes(s.currency, s.expiry).map((k) => <option key={k} value={k}>${k.toLocaleString()}</option>)}
-        </select>{' '}
+        <Toggle value={s.side} options={[['above', 'above'], ['below', 'below']]} onChange={(v) => set({ side: v as Sentence['side'] })} />{' '}
+        <Toggle value={String(s.strike)} options={menu.strikes(s.currency, s.expiry).map((k) => [String(k), `$${k.toLocaleString()}`])} onChange={(v) => set({ strike: Number(v) })} />{' '}
         by{' '}
-        <select value={s.expiry} onChange={(e) => set({ expiry: Number(e.target.value) })}>
-          {menu.expiries(s.currency).map((x) => <option key={x} value={x}>{expiryLabel(x)}</option>)}
-        </select>.
+        <Toggle value={String(s.expiry)} options={menu.expiries(s.currency).map((x) => [String(x), expiryLabel(x)])} onChange={(v) => set({ expiry: Number(v) })} />.
       </p>
 
       <div className="answers">
