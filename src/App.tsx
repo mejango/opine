@@ -105,7 +105,9 @@ export default function App() {
   const [stance, setStance] = useState<'do' | 'dont'>('do') // do = buy the option, don't = sell it
   const [ticker, setTicker] = useState<Ticker>()
   const [amount, setAmount] = useState('0.1')
-  const [limit, setLimit] = useState<string>() // set = user named a price → GTC limit instead of market
+  const [limit, setLimit] = useState<string>() // per contract; set = user named a price → GTC limit instead of market
+  const [total, setTotal] = useState('') // what's in the price field: the total for the current count
+  useEffect(() => { if (limit != null) setTotal(limit === '' ? '' : (Number(limit) * (Number(amount) || 0)).toFixed(2)) }, [amount, limit == null])
   const [wallet, setWallet] = useState<{ wallet: WalletClient; address: Address }>()
   const [subaccountId, setSubaccountId] = useState<number>()
   const [depositAddr, setDepositAddr] = useState<{ address: string; token: string }>()
@@ -371,7 +373,8 @@ export default function App() {
           {limit == null
             ? <button className="text" onClick={() => setLimit(quote?.toFixed(2) ?? '')}>Or, name your price.</button>
             : <label>
-                $<input type="text" inputMode="decimal" value={limit} onChange={(e) => setLimit(e.target.value.replace(/[^\d.]/g, ''))} style={{ width: `${Math.max(1, limit.length) + 0.5}ch` }} autoFocus /> each, waits for someone to {stance === 'do' ? 'sell' : 'buy'}.
+                $<input type="text" inputMode="decimal" value={total} onChange={(e) => { const t = e.target.value.replace(/[^\d.]/g, ''); setTotal(t); setLimit(n ? String(Math.round((Number(t) / n) * 100) / 100) : t) }} style={{ width: `${Math.max(1, total.length) + 0.5}ch` }} autoFocus />
+                {' '}for {n} contract{n === 1 ? '' : 's'} (${(Number(limit) || 0).toFixed(2)} each), waits for someone to {stance === 'do' ? 'sell' : 'buy'}.
                 <button className="text" onClick={() => setLimit(undefined)}>If you prefer, {stance === 'do' ? 'buy' : 'sell'} now instead.</button>
               </label>}
         </div>
