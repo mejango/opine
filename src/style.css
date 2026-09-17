@@ -48,6 +48,8 @@ dialog button { font: inherit; font-size: 15px; padding: 6px 12px; border: 1px s
 dialog button.text { border: 0; padding: 6px 8px; color: var(--muted); }
 dialog button.text:hover:not(:disabled), dialog button.text:focus-visible { color: var(--fg); background: color-mix(in srgb, currentColor 8%, transparent); outline: none; }
 dialog button:disabled { opacity: .4; cursor: default; }
+dialog button.confirm { display: block; width: 100%; margin-top: 16px; padding: 14px; border: 0; background: var(--teal); color: #111; font-size: 20px; font-weight: 600; }
+dialog button.confirm:hover { background: color-mix(in srgb, var(--teal) 85%, #fff); }
 dialog form.x { position: absolute; top: 8px; right: 8px; margin: 0; }
 dialog form.x button { border: 0; padding: 0; width: 32px; height: 32px; font-size: 24px; line-height: 1; color: var(--muted); }
 dialog form.x button:hover:not(:disabled), dialog form.x button:focus-visible { color: var(--fg); background: color-mix(in srgb, currentColor 8%, transparent); outline: none; }

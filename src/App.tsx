@@ -132,7 +132,7 @@ export default function App() {
   ] : [])
   const [loadError, setLoadError] = useState<string>()
   // The modal: what the click is doing right now.
-  const [step, setStep] = useState<{ kind: 'connecting' | 'deposit' | 'signing' | 'placing' | 'done' | 'error'; text?: string }>()
+  const [step, setStep] = useState<{ kind: 'review' | 'connecting' | 'deposit' | 'signing' | 'placing' | 'done' | 'error'; text?: string }>()
   const privy = usePrivy()
   const { wallets: privyWallets } = useWallets()
   const { login } = useLogin()
@@ -145,6 +145,7 @@ export default function App() {
   const [tab, setTab] = useState<'latest' | 'mine'>('latest') // mobile only: the two columns become tabs
   const who = useWho(feed.map((t) => t.wallet))
   const copying = useRef(false) // a copied opine opens the modal as soon as its price lands
+  const lastOverride = useRef<{ instrument: string; direction: 'buy' | 'sell'; amount: number }>() // the position action under review, if any
 
   // Recent opines: the public option tape, every 15 s.
   useEffect(() => {
@@ -278,7 +279,7 @@ export default function App() {
 
   /** The whole flow behind one click: connect, onboard if needed, sign once, place, report.
    *  `override` places against an existing position (unwind / double down) instead of the sentence. */
-  const go = async (override?: { instrument: string; direction: 'buy' | 'sell'; amount: number }) => {
+  const go = async (override?: { instrument: string; direction: 'buy' | 'sell'; amount: number }, confirmed = false) => {
     if (!menu || !s) return
     let o
     if (override) {
@@ -291,11 +292,17 @@ export default function App() {
       o = { ...resolve(menu, s, stance === 'do' ? 'yes' : 'no', ticker)!, amount: Number(amount), sentence: { ...s }, stance, limit: limit ? Number(limit) : undefined }
     }
     setOrder(o)
-    setCollateral(undefined)
-    if (o.direction === 'sell') d.collateralFor(o.instrument, o.amount).then(setCollateral).catch(() => {})
+    if (!confirmed) { // review first; wallet and login only once they say go
+      lastOverride.current = override
+      setCollateral(undefined)
+      if (o.direction === 'sell') d.collateralFor(o.instrument, o.amount).then(setCollateral).catch(() => {})
+      setStep({ kind: 'review' })
+      if (!dialog.current?.open) dialog.current?.showModal()
+      return
+    }
     if (!dialog.current?.open) dialog.current?.showModal()
     try {
-      const acct = await connect(() => go(override))
+      const acct = await connect(() => go(override, true))
       if (!acct) return
       const c = await ensureTrader(acct.w)
       setStep({ kind: 'placing' })
@@ -412,6 +419,11 @@ export default function App() {
         {order && (
           <Payoff currency={order.sentence.currency} spot={ticker?.I ? Number(ticker.I) : undefined}
             leg={{ type: order.sentence.side === 'above' ? 'C' : 'P', strike: order.sentence.strike, premium: order.limit ?? order.price, n: order.amount, long: order.direction === 'buy' }} />
+        )}
+        {step?.kind === 'review' && order && (
+          <button className="confirm" onClick={() => go(lastOverride.current, true)}>
+            {order.direction === 'buy' ? 'Pay' : 'Receive'} ${((order.limit ?? order.price) * order.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </button>
         )}
         {order && (() => {
           const i = menu.byName.get(order.instrument)
