@@ -6,7 +6,7 @@ import * as d from './derive'
 
 type Stage = 'browsing' | 'noAccount' | 'ready'
 
-/** A word in the sentence that opens a native dropdown: visible label + text chevron, invisible <select> on top. */
+/** A word in the sentence that opens a native dropdown: underlined label with an invisible <select> on top. */
 function Toggle({ value, options, onChange, className }: { value: string; options: [string, string][]; onChange: (v: string) => void; className?: string }) {
   const label = options.find(([v]) => v === value)?.[1] ?? value
   return (
