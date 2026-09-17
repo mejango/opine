@@ -4,8 +4,6 @@ import type { Address, WalletClient } from 'viem'
 import { buildMenu, expiryLabel, instrumentFor, pick, resolve, type Instrument, type Menu, type Sentence, type Ticker } from './sentence'
 import * as d from './derive'
 
-type Stage = 'browsing' | 'noAccount' | 'ready'
-
 /** A word in the sentence. Click cycles to the next option; press and hold opens the native picker. */
 function Toggle({ value, options, onChange, className }: { value: string; options: [string, string][]; onChange: (v: string) => void; className?: string }) {
   const sel = useRef<HTMLSelectElement>(null)
@@ -47,12 +45,14 @@ export default function App() {
   const [ticker, setTicker] = useState<Ticker>()
   const [amount, setAmount] = useState('1')
   const [wallet, setWallet] = useState<{ wallet: WalletClient; address: Address }>()
-  const [stage, setStage] = useState<Stage>('browsing')
   const [subaccountId, setSubaccountId] = useState<number>()
   const [depositAddr, setDepositAddr] = useState<string>()
   const [positions, setPositions] = useState<any[]>([])
-  const [msg, setMsg] = useState<{ text: string; err?: boolean }>()
-  const [busy, setBusy] = useState(false)
+  const [loadError, setLoadError] = useState<string>()
+  // The modal: what the click is doing right now.
+  const [step, setStep] = useState<{ kind: 'connecting' | 'deposit' | 'signing' | 'placing' | 'done' | 'error'; text?: string }>()
+  const [order, setOrder] = useState<{ instrument: string; direction: 'buy' | 'sell'; price: number; amount: number }>()
+  const dialog = useRef<HTMLDialogElement>(null)
   const trader = useRef<DeriveClient>()
 
   // Instruments once; ticker for the current instrument every 3 s.
@@ -65,7 +65,7 @@ export default function App() {
         // Open on a round bet: near-the-money strike, ~2 months out.
         setS(pick(m, { currency, expiry: Date.now() / 1000 + 60 * 86400, strike: await d.spot(currency), side: 'above' }))
       })
-      .catch((e) => setMsg({ text: String(e), err: true }))
+      .catch((e) => setLoadError(String(e)))
   }, [])
   const inst = menu && s ? instrumentFor(menu, s) : undefined
   useEffect(() => {
@@ -77,35 +77,37 @@ export default function App() {
     return () => { live = false; clearInterval(id) }
   }, [inst?.instrument_name])
 
-  // Onboarding: show deposit progress while waiting. Login needs an account, so the user re-connects once it lands.
+  // Onboarding: show deposit progress while waiting. Login needs an account, so the user retries once it lands.
   const [pending, setPending] = useState<{ status: string; amount: string }[]>([])
   useEffect(() => {
-    if (stage !== 'noAccount' || !wallet) return
+    if (step?.kind !== 'deposit' || !wallet) return
     const poll = () => d.pendingDeposits(wallet.address).then(setPending).catch(() => {})
     poll()
     const id = setInterval(poll, 10_000)
     return () => clearInterval(id)
-  }, [stage, wallet])
+  }, [step?.kind, wallet])
 
-  const refreshPositions = async () => {
-    if (!trader.current || subaccountId == null) return
-    const r: any = await trader.current.subaccounts.getPositions(subaccountId)
+  const refreshPositions = async (c: DeriveClient, id: number) => {
+    const r: any = await c.subaccounts.getPositions(id)
     setPositions(r.positions.filter((p: any) => Number(p.amount) !== 0))
   }
 
+  /** Wallet → login → subaccount. Returns undefined when the wallet has no Derive account yet (modal shows deposit). */
   const connect = async () => {
+    setStep({ kind: 'connecting' })
     const w = wallet ?? (await d.connectWallet())
     setWallet(w)
+    if (subaccountId != null) return { w, id: subaccountId }
     try {
       await d.ownerLogin(w.wallet, w.address)
     } catch (e: any) {
       if (e?.code !== d.NO_ACCOUNT) throw e
-      setDepositAddr(await d.depositAddress(w.address)); setStage('noAccount')
-      return w
+      setDepositAddr(await d.depositAddress(w.address)); setStep({ kind: 'deposit' })
+      return
     }
     const ids = await d.listSubaccounts(w.address)
-    setSubaccountId(ids[0]); setStage('ready')
-    return w
+    setSubaccountId(ids[0])
+    return { w, id: ids[0] }
   }
 
   const ensureTrader = async (w: { wallet: WalletClient; address: Address }) => {
@@ -115,33 +117,35 @@ export default function App() {
       try { trader.current = await d.tradingClient(w.address, key); return trader.current }
       catch { d.forgetSessionKey(w.address) } // expired or unknown key — mint a fresh one
     }
+    setStep({ kind: 'signing' })
     key = await d.mintSessionKey(w.wallet, w.address)
     trader.current = await d.tradingClient(w.address, key)
     return trader.current
   }
 
-  const answer = async () => {
-    const yes = stance === 'do'
+  /** The whole flow behind one click: connect, onboard if needed, sign once, place, report. */
+  const go = async () => {
     if (!menu || !s || !ticker || !inst) return
-    setBusy(true); setMsg(undefined)
+    const o = { ...resolve(menu, s, stance === 'do' ? 'yes' : 'no', ticker)!, amount: Number(amount) }
+    setOrder(o)
+    dialog.current?.showModal()
     try {
-      const w = wallet ?? (await connect())
-      if (!wallet || stage !== 'ready') return // first click just connects / onboards
-      const c = await ensureTrader(w)
-      await refreshPositions()
-      const r = resolve(menu, s, yes ? 'yes' : 'no', ticker)!
-      const res = await d.placeOpinion(c, { subaccountId: subaccountId!, ...r, amount: Number(amount), tickSize: Number(inst.tick_size ?? '0.1') })
+      const acct = await connect()
+      if (!acct) return
+      const c = await ensureTrader(acct.w)
+      setStep({ kind: 'placing' })
+      const res = await d.placeOpinion(c, { subaccountId: acct.id, ...o, tickSize: Number(inst.tick_size ?? '0.1') })
       const filled = Number(res.order?.filled_amount ?? 0)
-      setMsg(filled === 0
-        ? { text: 'Nothing filled — the book moved. Try again.', err: true }
-        : { text: `${r.direction === 'buy' ? 'Bought' : 'Sold'} ${filled} × ${r.instrument} at ~$${res.order.average_price ?? r.price}` })
-      await refreshPositions()
+      setStep(filled === 0
+        ? { kind: 'error', text: 'Nothing filled — the book moved. Try again.' }
+        : { kind: 'done', text: `${o.direction === 'buy' ? 'Bought' : 'Sold'} ${filled} at ~$${res.order.average_price ?? o.price}` })
+      await refreshPositions(c, acct.id)
     } catch (e: any) {
-      setMsg({ text: e?.message ?? String(e), err: true })
-    } finally { setBusy(false) }
+      setStep({ kind: 'error', text: e?.message ?? String(e) })
+    }
   }
 
-  if (!menu || !s) return <main><h1>Opine</h1><p>{msg?.text ?? 'Loading markets…'}</p></main>
+  if (!menu || !s) return <main><h1>Opine</h1><p>{loadError ?? 'Loading markets…'}</p></main>
 
   const set = async (patch: Partial<Sentence>) => {
     if (patch.currency) patch.strike = await d.spot(patch.currency) // new coin, new price scale
@@ -149,10 +153,10 @@ export default function App() {
   }
   const px = ticker ? Number(stance === 'do' ? ticker.a : ticker.b) : undefined
   const n = Number(amount) || 0
-  const cta = !wallet ? 'Connect wallet' : stage === 'noAccount' ? 'Waiting for deposit…' : undefined
   const minAmt = Number(inst?.minimum_amount ?? 0.1), stepAmt = Number(inst?.amount_step ?? 0.01)
-  const step = (dir: 1 | -1) => setAmount(String(Math.max(minAmt, Math.round((n + dir) * 100) / 100)))
+  const step_ = (dir: 1 | -1) => setAmount(String(Math.max(minAmt, Math.round((n + dir) * 100) / 100)))
   const usd = (x?: number) => (x ? `$${(x * n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—')
+  const busy = step && !['done', 'error', 'deposit'].includes(step.kind)
 
   return (
     <main>
@@ -171,32 +175,38 @@ export default function App() {
 
       <div className={`card ${stance}`}>
         <div className="qty">
-          <button onClick={() => step(-1)} aria-label="fewer">−</button>
+          <button onClick={() => step_(-1)} aria-label="fewer">−</button>
           <input type="number" min={minAmt} step={stepAmt} value={amount} onChange={(e) => setAmount(e.target.value)} />
-          <button onClick={() => step(1)} aria-label="more">+</button>
+          <button onClick={() => step_(1)} aria-label="more">+</button>
         </div>
-        <button className="main" disabled={busy || !px} onClick={answer}>
+        <button className="main" disabled={busy || !px} onClick={go}>
           <b>{stance === 'do' ? 'Pay' : 'Receive'} {usd(px)}</b>
-          <small>{cta ?? `${stance === 'do' ? 'Buy' : 'Sell'} ${n} ${inst?.instrument_name}`}</small>
         </button>
       </div>
-      <div className="row">
-        <span>{d.NETWORK}{wallet ? ` · ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''}{subaccountId != null ? ` · #${subaccountId}` : ''}</span>
-      </div>
 
-      {msg && <div className={`msg${msg.err ? ' err' : ''}`}>{msg.text}</div>}
-
-      {stage === 'noAccount' && (
-        <div className="panel">
-          <p>No Derive account yet. Send USDC on <b>{d.CHAIN_LABEL}</b> to open one:</p>
-          <p><code>{depositAddr}</code></p>
-          <p>Only USDC, only on {d.CHAIN_LABEL}. Credits in a minute or two.</p>
-          {pending.map((p, i) => <p key={i}>Deposit of {(Number(p.amount) / 1e6).toFixed(2)} USDC: <b>{p.status}</b></p>)}
-          <button disabled={busy} onClick={() => { setBusy(true); connect().catch((e) => setMsg({ text: e.message, err: true })).finally(() => setBusy(false)) }}>
-            I've deposited — continue
-          </button>
-        </div>
-      )}
+      <dialog ref={dialog} onClose={() => setStep(undefined)}>
+        {order && (
+          <p className="order">
+            <b>{order.direction === 'buy' ? 'Buy' : 'Sell'} {order.amount} × {order.instrument}</b>
+            <small>${order.price.toFixed(2)} each · {d.NETWORK}{wallet ? ` · ${wallet.address.slice(0, 6)}…${wallet.address.slice(-4)}` : ''}{subaccountId != null ? ` · #${subaccountId}` : ''}</small>
+          </p>
+        )}
+        {step?.kind === 'connecting' && <p>Connecting wallet…</p>}
+        {step?.kind === 'signing' && <p>Sign once to authorise a 30-day trading key. Trades after this need no signature.</p>}
+        {step?.kind === 'placing' && <p>Placing…</p>}
+        {step?.kind === 'done' && <p className="ok">{step.text}</p>}
+        {step?.kind === 'error' && <p className="err">{step.text}</p>}
+        {step?.kind === 'deposit' && (
+          <div>
+            <p>No Derive account yet. Send USDC on <b>{d.CHAIN_LABEL}</b> to open one:</p>
+            <p><code>{depositAddr}</code></p>
+            <p>Only USDC, only on {d.CHAIN_LABEL}. Credits in a minute or two.</p>
+            {pending.map((p, i) => <p key={i}>Deposit of {(Number(p.amount) / 1e6).toFixed(2)} USDC: <b>{p.status}</b></p>)}
+            <button onClick={go}>I've deposited — continue</button>
+          </div>
+        )}
+        <form method="dialog"><button disabled={busy}>Close</button></form>
+      </dialog>
 
       {positions.length > 0 && (
         <ul className="positions">
