@@ -50,7 +50,8 @@ dialog form.x button:hover:not(:disabled), dialog form.x button:focus-visible { 
 .ghost i, i.ghost { display: inline-block; height: .8em; vertical-align: -.1em; background: linear-gradient(90deg, var(--line) 25%, color-mix(in srgb, var(--line) 40%, var(--bg)) 50%, var(--line) 75%); background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite; }
 .sentence.ghost { color: var(--muted); }
 .sentence.ghost i { border-bottom: 3px solid var(--line); }
-.card.ghost .main { display: block; width: 8em; height: 2.9em; background: linear-gradient(90deg, var(--line) 25%, color-mix(in srgb, var(--line) 40%, var(--bg)) 50%, var(--line) 75%); background-size: 200% 100%; }
+.card.ghost .main { display: block; width: 8em; height: 2.9em; background: linear-gradient(90deg, color-mix(in srgb, var(--teal) 18%, var(--bg)) 25%, color-mix(in srgb, var(--teal) 30%, var(--bg)) 50%, color-mix(in srgb, var(--teal) 18%, var(--bg)) 75%); background-size: 200% 100%; }
+.card .main i.ghost { background: linear-gradient(90deg, rgba(0,0,0,.12) 25%, rgba(0,0,0,.22) 50%, rgba(0,0,0,.12) 75%); background-size: 200% 100%; border: 0; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .ghost i, i.ghost { animation: none; } }
 .err { color: var(--no); }
