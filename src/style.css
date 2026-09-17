@@ -7,7 +7,6 @@ h1 { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: va
 .sentence { font-size: clamp(28px, 5vw, 44px); line-height: 1.3; font-weight: 600; margin: 0 0 32px; }
 .tog { position: relative; display: inline-block; border-bottom: 3px solid currentColor; cursor: pointer; white-space: nowrap; }
 .tog.do { color: var(--yes); } .tog.dont { color: var(--no); }
-.tog .chev { font-size: .55em; vertical-align: .45em; margin-left: .15em; }
 .tog select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; font: inherit; }
 .tog:has(select:focus-visible) { border-bottom-color: var(--yes); }
 .card { border: 2px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 8px; }

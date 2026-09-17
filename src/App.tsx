@@ -11,7 +11,7 @@ function Toggle({ value, options, onChange, className }: { value: string; option
   const label = options.find(([v]) => v === value)?.[1] ?? value
   return (
     <span className={`tog ${className ?? ''}`}>
-      {label}<span className="chev">⌄</span>
+      {label}
       <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>
