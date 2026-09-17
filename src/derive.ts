@@ -3,6 +3,7 @@ import { DeriveClient, ProtocolScopeCode, OffchainScope, channel, loginParams, r
 import { encodeSetSessionKeyActionData } from '@derivexyz/derive-ts/codecs'
 import { Wallet } from 'ethers'
 import { createWalletClient, custom, type Address, type WalletClient } from 'viem'
+import { mainnet, sepolia } from 'viem/chains'
 import { ACTION_TYPES, MATCHING } from './eip712'
 
 export const NETWORK = (import.meta.env.VITE_DERIVE_NETWORK ?? 'testnet') as NetworkName
@@ -83,9 +84,18 @@ export function discoverWallets(): Promise<WalletOption[]> {
   })
 }
 
+export const chain = NETWORK === 'mainnet' ? mainnet : sepolia
+
 export async function connectWallet(provider: any): Promise<{ wallet: WalletClient; address: Address }> {
-  const wallet = createWalletClient({ transport: custom(provider) })
+  const wallet = createWalletClient({ chain, transport: custom(provider) })
   const [address] = await wallet.requestAddresses()
+  // Wallets refuse typed-data signatures whose domain.chainId isn't the active chain, so line it up now.
+  if ((await wallet.getChainId()) !== chain.id) {
+    try { await wallet.switchChain({ id: chain.id }) }
+    catch { await wallet.addChain({ chain }); await wallet.switchChain({ id: chain.id }) }
+  }
+  provider.on?.('accountsChanged', () => location.reload()) // ponytail: state is per-address; a reload is the honest reset
+  provider.on?.('chainChanged', () => location.reload())
   return { wallet, address }
 }
 
