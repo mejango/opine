@@ -58,6 +58,17 @@ function svg(o, pay) {
 </svg>`
 }
 
+/** The brand card for links with no opinion in them. */
+function brandSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#111"/>
+  <text x="600" y="300" font-family="Inter" font-weight="600" font-size="200" fill="#f2a14c" text-anchor="middle">⌥</text>
+  <text x="600" y="400" font-family="Inter" font-weight="600" font-size="64" fill="#f2a14c" text-anchor="middle" letter-spacing="10">OPINE</text>
+  <text x="600" y="470" font-family="Inter" font-weight="500" font-size="30" fill="#eee" text-anchor="middle">What do you think the price will be?</text>
+  <text x="600" y="514" font-family="Inter" font-weight="500" font-size="24" fill="#999" text-anchor="middle">Buy or sell the option that says it.</text>
+</svg>`
+}
+let brandPng
 const pngCache = new Map()
 async function ogPng(o) {
   const t = await quote(o)
@@ -115,8 +126,8 @@ createServer(async (req, res) => {
       return
     }
     if (url.pathname === '/og.png') {
-      const o = opinion(url.searchParams) ?? opinion(new URLSearchParams('i=ETH-20261127-2500-C'))
-      const png = await ogPng(o)
+      const o = opinion(url.searchParams)
+      const png = o ? await ogPng(o) : (brandPng ??= new Resvg(brandSvg(), { fitTo: { mode: 'width', value: 1200 }, font: { fontFiles: fonts, loadSystemFonts: false, defaultFontFamily: 'Inter' } }).render().asPng())
       res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'public, max-age=60' }).end(png)
       return
     }
