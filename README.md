@@ -1,6 +1,6 @@
 # Opine
 
-What do you think the price will be?
+What do you think the price will be? Buy or sell the option that says it.
 
 > I think ‹ETH› will be ‹above› ‹$3,000› by ‹Mar 26, 2027›.  **Yes $41.20** / **No $39.80**
 
