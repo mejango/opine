@@ -1,5 +1,7 @@
 # Opine
 
+What do you think the price will be?
+
 > I think ‹ETH› will be ‹above› ‹$3,000› by ‹Mar 26, 2027›.  **Yes $41.20** / **No $39.80**
 
 A one-sentence front end for buying and selling options on [Derive V3](https://derive.xyz).

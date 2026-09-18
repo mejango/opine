@@ -74,11 +74,11 @@ async function ogPng(o) {
 function page(url) {
   const o = opinion(url.searchParams)
   const site = `${url.protocol}//${url.host}`
-  const title = o ? sentence(o) : 'Opine — options in a sentence'
-  const desc = o ? `Agree or disagree on Derive. Copy this opinion or take the other side.` : 'Say what you think. Buy or sell the option that says it.'
+  const title = o ? sentence(o) : 'Opine — What do you think the price will be?'
+  const desc = o ? `Agree or disagree on Derive. Copy this opinion or take the other side.` : 'Say it in a sentence. Buy or sell the option that says it, on Derive.'
   const img = `${site}/og.png${o ? url.search : ''}`
   const tags = `<meta property="og:title" content="${esc(title)}"/><meta property="og:description" content="${esc(desc)}"/><meta property="og:image" content="${esc(img)}"/><meta property="og:image:width" content="1200"/><meta property="og:image:height" content="630"/><meta property="og:url" content="${esc(site + url.pathname + url.search)}"/><meta name="twitter:card" content="summary_large_image"/><meta name="twitter:title" content="${esc(title)}"/><meta name="twitter:image" content="${esc(img)}"/>`
-  return indexHtml.replace('</head>', `${tags}</head>`).replace('<title>Opine</title>', `<title>${esc(title)}</title>`)
+  return indexHtml.replace('</head>', `<meta name="description" content="${esc(desc)}"/>${tags}</head>`).replace('<title>Opine</title>', `<title>${esc(title)}</title>`)
 }
 
 // address → X handle, from Privy's user list (server-side only: needs the app secret). Empty when not configured.
